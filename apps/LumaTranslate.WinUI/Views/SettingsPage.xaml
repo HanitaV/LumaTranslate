@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="LumaTranslate_WinUI.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Loaded="Page_Loaded">
+
+    <ScrollViewer Padding="24,16,24,32" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="920" Spacing="20">
+
+            <!-- OCR Settings -->
+            <StackPanel
+                Padding="18"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Spacing="12">
+                <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="Nhận dạng OCR (PaddleOCR PP-OCRv5)" />
+                <TextBlock
+                    FontSize="13"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="{x:Bind ViewModel.OcrStatusText, Mode=OneWay}" />
+                <TextBlock
+                    FontSize="12"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="{x:Bind ViewModel.GpuSummaryText, Mode=OneWay}" />
+
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ComboBox
+                        x:Name="DefaultLangCombo"
+                        Grid.Column="0"
+                        HorizontalAlignment="Stretch"
+                        AutomationProperties.AutomationId="DefaultLanguageCombo"
+                        Header="Ngôn ngữ mặc định cho vùng mới" />
+                    <NumberBox
+                        x:Name="IntervalNumberBox"
+                        Grid.Column="1"
+                        AutomationProperties.AutomationId="MonitoringIntervalBox"
+                        Header="Chu kỳ kiểm tra màn hình (ms)"
+                        Maximum="2000"
+                        Minimum="100"
+                        SmallChange="50"
+                        SpinButtonPlacementMode="Compact" />
+                </Grid>
+            </StackPanel>
+
+            <!-- Cloud Translation Settings -->
+            <StackPanel
+                Padding="18"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Spacing="12">
+                <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="Dịch đám mây (Đích duy nhất: Tiếng Việt)" />
+
+                <CheckBox
+                    x:Name="CloudConsentCheckBox"
+                    AutomationProperties.AutomationId="CloudConsentCheckBox"
+                    Content="Tôi hiểu và đồng ý gửi văn bản nhận dạng OCR lên nhà cung cấp dịch đám mây đã chọn (không gửi hình ảnh chụp màn hình)" />
+
+                <ComboBox
+                    x:Name="ProviderCombo"
+                    HorizontalAlignment="Stretch"
+                    AutomationProperties.AutomationId="ProviderComboBox"
+                    Header="Nhà cung cấp dịch trực tuyến chính" />
+
+                <TextBox
+                    x:Name="MyMemoryEmailBox"
+                    Header="Email liên hệ MyMemory (Tùy chọn • Tăng hạn mức miễn phí)"
+                    PlaceholderText="ví dụ: ban@example.com" />
+
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <PasswordBox
+                        x:Name="AzureKeyBox"
+                        Grid.Column="0"
+                        AutomationProperties.AutomationId="AzureApiKeyBox"
+                        Header="Khóa API Azure Translator (Hỗ trợ gói F0 miễn phí)"
+                        PlaceholderText="Nhập khóa đăng ký Azure Translator" />
+                    <TextBox
+                        x:Name="AzureRegionBox"
+                        Grid.Column="1"
+                        AutomationProperties.AutomationId="AzureRegionBox"
+                        Header="Vùng Azure (Region)"
+                        PlaceholderText="ví dụ: southeastasia" />
+                </Grid>
+
+                <PasswordBox
+                    x:Name="GoogleKeyBox"
+                    AutomationProperties.AutomationId="GoogleApiKeyBox"
+                    Header="Khóa API Google Cloud Translation (Tùy chọn)"
+                    PlaceholderText="Nhập khóa Google Cloud Translation v2" />
+
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                    <CheckBox x:Name="FallbackMyMemoryCheck" Content="Cho phép dự phòng sang MyMemory" />
+                    <CheckBox x:Name="FallbackAzureCheck" Content="Cho phép dự phòng sang Azure (khi đã nhập khóa)" />
+                    <CheckBox x:Name="FallbackGoogleCheck" Content="Cho phép dự phòng sang Google (khi đã nhập khóa)" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button
+                        x:Name="TestProviderBtn"
+                        AutomationProperties.AutomationId="TestProviderButton"
+                        Click="TestProviderBtn_Click"
+                        Content="Kiểm tra kết nối" />
+                    <TextBlock
+                        x:Name="TestResultText"
+                        VerticalAlignment="Center"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- TTS Settings -->
+            <StackPanel
+                Padding="18"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Spacing="12">
+                <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="Đọc giọng nói tiếng Việt cục bộ (VieNeu-TTS v3 Turbo)" />
+                <TextBlock
+                    FontSize="13"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="{x:Bind ViewModel.TtsStatusText, Mode=OneWay}" />
+
+                <ToggleSwitch
+                    x:Name="TtsAutoSwitch"
+                    AutomationProperties.AutomationId="TtsAutoToggle"
+                    Header="Tự động đọc bản dịch tiếng Việt"
+                    OffContent="Tắt"
+                    OnContent="Bật" />
+
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Slider
+                        x:Name="VolumeSlider"
+                        Grid.Column="0"
+                        AutomationProperties.AutomationId="TtsVolumeSlider"
+                        Header="Âm lượng đọc (%)"
+                        Maximum="150"
+                        Minimum="0"
+                        StepFrequency="5" />
+                    <ComboBox
+                        x:Name="TtsModeCombo"
+                        Grid.Column="1"
+                        HorizontalAlignment="Stretch"
+                        AutomationProperties.AutomationId="TtsModeComboBox"
+                        Header="Thiết bị thực thi TTS" />
+                </Grid>
+            </StackPanel>
+
+            <!-- Overlay Settings -->
+            <StackPanel
+                Padding="18"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Spacing="12">
+                <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="Cửa sổ phụ đề nổi (Overlay)" />
+
+                <Grid ColumnSpacing="16" RowSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <NumberBox
+                        x:Name="OverlayFontSizeBox"
+                        Grid.Column="0"
+                        Header="Cỡ chữ (pt)"
+                        Maximum="56"
+                        Minimum="14"
+                        SpinButtonPlacementMode="Compact" />
+                    <NumberBox
+                        x:Name="OverlayOpacityBox"
+                        Grid.Column="1"
+                        Header="Độ rõ (%)"
+                        Maximum="100"
+                        Minimum="30"
+                        SpinButtonPlacementMode="Compact" />
+                    <NumberBox
+                        x:Name="OverlayXBox"
+                        Grid.Column="2"
+                        Header="Vị trí X (px)"
+                        SpinButtonPlacementMode="Compact" />
+                    <NumberBox
+                        x:Name="OverlayYBox"
+                        Grid.Column="3"
+                        Header="Vị trí Y (px)"
+                        SpinButtonPlacementMode="Compact" />
+                </Grid>
+
+                <ToggleSwitch
+                    x:Name="ClickThroughSwitch"
+                    AutomationProperties.AutomationId="OverlayClickThroughSwitch"
+                    Header="Khóa xuyên chuột (Click-through khi đang chơi game; tắt để kéo đổi vị trí phụ đề)"
+                    OffContent="Đang cho phép kéo phụ đề"
+                    OnContent="Đang xuyên chuột" />
+            </StackPanel>
+
+            <!-- Data & Save Actions -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button
+                    Grid.Column="0"
+                    AutomationProperties.AutomationId="SaveSettingsButton"
+                    Click="SaveSettingsBtn_Click"
+                    Content="Lưu tất cả cài đặt"
+                    Style="{ThemeResource AccentButtonStyle}" />
+
+                <Button
+                    Grid.Column="1"
+                    AutomationProperties.AutomationId="OpenSetupWizardButton"
+                    Click="OpenSetupWizardBtn_Click"
+                    Content="Kiểm tra / Cài đặt lại môi trường AI" />
+
+                <Button
+                    Grid.Column="3"
+                    AutomationProperties.AutomationId="ClearCacheButton"
+                    Click="ClearCacheBtn_Click"
+                    Content="Xóa bộ nhớ đệm dịch" />
+
+                <Button
+                    Grid.Column="4"
+                    AutomationProperties.AutomationId="ClearHistoryButton"
+                    Click="ClearHistoryBtn_Click"
+                    Content="Xóa lịch sử hội thoại" />
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

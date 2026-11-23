@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="LumaTranslate_WinUI.Views.SetupWizardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Loaded="Page_Loaded">
+
+    <Grid Padding="32,24" RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="6">
+            <TextBlock
+                Style="{ThemeResource TitleTextBlockStyle}"
+                Text="Thiết lập môi trường LumaTranslate" />
+            <TextBlock
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Text="LumaTranslate tích hợp sẵn trình cài đặt tự động. Ứng dụng sẽ chuẩn bị môi trường Python 3.12 cô lập, thư viện CUDA cho PaddleOCR PP-OCRv5 &amp; VieNeu-TTS v3 Turbo, cùng các mô hình AI cục bộ trong %LOCALAPPDATA%\LumaTranslate."
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <StackPanel
+            Grid.Row="1"
+            Padding="16"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Spacing="8">
+            <TextBlock
+                x:Name="HardwareSummaryText"
+                AutomationProperties.AutomationId="SetupHardwareSummaryText"
+                FontWeight="SemiBold"
+                Text="Đang kiểm tra phần cứng GPU NVIDIA..." />
+            <TextBlock
+                x:Name="EnvironmentStateText"
+                AutomationProperties.AutomationId="SetupEnvironmentStateText"
+                FontSize="13"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Text="Đang kiểm tra trạng thái cài đặt..."
+                TextWrapping="Wrap" />
+
+            <CheckBox
+                x:Name="DownloadModelsCheckBox"
+                AutomationProperties.AutomationId="SetupDownloadModelsCheckBox"
+                Content="Tải trước và xác minh các mô hình AI cục bộ (~950 MB • Giấy phép Apache-2.0 • Hoạt động ngoại tuyến sau khi tải)"
+                IsChecked="True" />
+            <CheckBox
+                x:Name="ForceReinstallCheckBox"
+                AutomationProperties.AutomationId="SetupForceReinstallCheckBox"
+                Content="Cài đặt lại toàn bộ môi trường ảo Python (.venv) từ đầu"
+                IsChecked="False" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Spacing="8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    x:Name="CurrentStepText"
+                    AutomationProperties.AutomationId="SetupCurrentStepText"
+                    FontWeight="SemiBold"
+                    Text="Sẵn sàng thiết lập."
+                    TextWrapping="Wrap" />
+                <TextBlock
+                    x:Name="PercentText"
+                    Grid.Column="1"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="0%" />
+            </Grid>
+            <ProgressBar
+                x:Name="InstallProgressBar"
+                AutomationProperties.AutomationId="SetupProgressBar"
+                Maximum="100"
+                Minimum="0"
+                Value="0" />
+        </StackPanel>
+
+        <ScrollViewer
+            x:Name="LogScrollViewer"
+            Grid.Row="3"
+            Padding="12"
+            Background="{ThemeResource LayerFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="6"
+            VerticalScrollBarVisibility="Auto">
+            <TextBlock
+                x:Name="InstallLogTextBlock"
+                FontFamily="Cascadia Mono, Consolas"
+                FontSize="12"
+                IsTextSelectionEnabled="True"
+                Text="Nhật ký cài đặt sẽ hiển thị trực tiếp tại đây..."
+                TextWrapping="Wrap" />
+        </ScrollViewer>
+
+        <StackPanel
+            Grid.Row="4"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal"
+            Spacing="12">
+            <Button
+                x:Name="SkipToAppBtn"
+                AutomationProperties.AutomationId="SetupSkipButton"
+                Click="SkipToAppBtn_Click"
+                Content="Mở ứng dụng ngay"
+                Visibility="Collapsed" />
+            <Button
+                x:Name="CancelSetupBtn"
+                AutomationProperties.AutomationId="SetupCancelButton"
+                Click="CancelSetupBtn_Click"
+                Content="Hủy"
+                IsEnabled="False" />
+            <Button
+                x:Name="StartInstallBtn"
+                AutomationProperties.AutomationId="SetupStartInstallButton"
+                Click="StartInstallBtn_Click"
+                Content="Cài đặt môi trường &amp; Khởi động"
+                Style="{ThemeResource AccentButtonStyle}" />
+        </StackPanel>
+    </Grid>
+</Page>

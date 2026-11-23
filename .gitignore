@@ -1,0 +1,47 @@
+# Build artifacts
+/dist/
+/target/
+/backend/target/
+/apps/**/bin/
+/apps/**/obj/
+/apps/**/AppPackages/
+/apps/**/BundleArtifacts/
+*.user
+*.suo
+*.vs/
+.vs/
+
+# Python environments & cache
+.venv/
+**/.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Local model weights & runtime data
+models/
+data/
+*.onnx
+*.pdiparams
+*.pdmodel
+*.safetensors
+*.pt
+*.pth
+*.bin
+*.gguf
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.wav
+
+# Local secrets & config
+.env
+*.local.json
+secrets.json
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+*.log

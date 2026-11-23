@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="LumaTranslate_WinUI.Overlays.SubtitleOverlayWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Phụ đề LumaTranslate">
+
+    <Grid
+        x:Name="OverlayRoot"
+        Padding="20,14"
+        Background="#DC141821"
+        BorderBrush="#55FFFFFF"
+        BorderThickness="1"
+        CornerRadius="10"
+        PointerPressed="OverlayRoot_PointerPressed">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock
+            x:Name="DragHintText"
+            Grid.Row="0"
+            Margin="0,0,0,4"
+            FontSize="12"
+            Foreground="#B8CBD5E1"
+            Text="Kéo để di chuyển phụ đề • Bật 'Khóa xuyên chuột' trong Cài đặt để click xuyên qua"
+            Visibility="Collapsed" />
+
+        <TextBlock
+            x:Name="VietnameseSubtitleText"
+            Grid.Row="1"
+            VerticalAlignment="Center"
+            AutomationProperties.AutomationId="OverlaySubtitleTextBlock"
+            FontFamily="Segoe UI Variable Display"
+            FontSize="24"
+            FontWeight="SemiBold"
+            Foreground="#FFF8FAFC"
+            LineStackingStrategy="BlockLineHeight"
+            Text="Phụ đề tiếng Việt sẽ hiển thị tại đây khi bắt đầu dịch."
+            TextAlignment="Center"
+            TextWrapping="WrapWholeWords" />
+    </Grid>
+</Window>

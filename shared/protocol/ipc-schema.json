@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LumaTranslateIPCProtocol",
+  "description": "Length-prefixed UTF-8 JSON protocol over Windows Named Pipe (\\\\.\\pipe\\LumaTranslate.IPC) between LumaTranslate.WinUI and LumaTranslate.Backend.",
+  "framing": {
+    "header": "u32_le_byte_length",
+    "maxMessageBytes": 4194304,
+    "encoding": "utf-8"
+  },
+  "clientCommands": [
+    "get_state",
+    "upsert_region",
+    "delete_region",
+    "set_region_enabled",
+    "start_monitoring",
+    "stop_monitoring",
+    "update_settings",
+    "register_overlay_window",
+    "test_translation",
+    "query_history",
+    "clear_history",
+    "clear_cache",
+    "list_monitors",
+    "shutdown"
+  ],
+  "serverEvents": [
+    "response",
+    "state_snapshot",
+    "subtitle_updated",
+    "worker_status",
+    "pipeline_error",
+    "speech_state"
+  ]
+}

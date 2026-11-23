@@ -1,0 +1,10 @@
+# Pinned after RTX 3060 (Windows 11 x64, Python 3.12, CUDA 12.6) verification.
+# Install paddlepaddle-gpu from https://www.paddlepaddle.org.cn/packages/stable/cu126/
+paddlepaddle-gpu==3.3.1
+paddleocr==3.6.0
+paddlex==3.6.1
+opencv-contrib-python==4.10.0.84
+numpy==2.3.5
+pillow==13.0.0
+nvidia-ml-py==13.615.71
+pytest==9.2.0

@@ -1,0 +1,153 @@
+[
+  {
+    "skills": ["csharp-dotnet"],
+    "query": "Read Directory.Build.props, Directory.Packages.props and Orders.Api.csproj in this directory. `dotnet restore` fails, the extra analyzers never switch on for net10.0, and the Release-only settings never apply. Tell me exactly what is wrong in these three files and show the fixes.",
+    "files": [
+      "evals/files/Directory.Build.props",
+      "evals/files/Directory.Packages.props",
+      "evals/files/Orders.Api.csproj"
+    ],
+    "expected_behavior": [
+      "Identifies the restore failure as NU1008: with ManagePackageVersionsCentrally=true a PackageReference must not carry Version, so Microsoft.EntityFrameworkCore.SqlServer Version=\"10.0.2\" must be removed (or expressed as VersionOverride if that project genuinely needs a different version)",
+      "Explains that Condition=\"'$(TargetFramework)' == 'net10.0'\" on a PropertyGroup in Directory.Build.props never matches for a single-targeting project because TargetFramework is not set yet when .props is evaluated, and moves that PropertyGroup to Directory.Build.targets (or the project file) rather than just changing the value",
+      "Fixes Condition=\"$(Configuration)==Release\" by single-quoting both sides, and explains that an unquoted condition misevaluates or fails to parse when the property is empty",
+      "Flags that DefineConstants is assigned without appending the previous value in both files, so FEATURE_PROMOTIONS in the csproj discards ORDERS_BUILD, and fixes it to $(DefineConstants);FEATURE_PROMOTIONS (and does the same for NoWarn)",
+      "Flags OutputPath being set unconditionally in Directory.Build.props and then silently overridden by the csproj, and fixes it with Condition=\"'$(OutputPath)' == ''\" so the shared value is an overridable default",
+      "Says the analyzer PackageReference items need PrivateAssets=\"all\" (or GlobalPackageReference in Directory.Packages.props) so analyzers do not flow transitively to consumers",
+      "Removes the redundant SDK defaults and the manual <Compile Include> items, and notes that OutputType=Library contradicts Microsoft.NET.Sdk.Web / an executable web app",
+      "Guards the unconditional <Import Project=\"../eng/signing.props\" /> with Condition=\"Exists(...)\" and uses forward slashes or an MSBuild path function instead of a backslash literal",
+      "Names a concrete diagnosis command such as dotnet msbuild -pp:out.xml Orders.Api.csproj or a binary log to prove which file set the final property value"
+    ]
+  },
+  {
+    "skills": ["csharp-dotnet"],
+    "query": "Program.cs in this directory is an ASP.NET Core 10 minimal API. It works in local tests but in production the /orders/report endpoint returns stale data, sometimes throws \"A second operation was started on this context instance\", and under load the whole app stops responding. Review the file and give me the fixes.",
+    "files": ["evals/files/Program.cs"],
+    "expected_behavior": [
+      "Names the captive dependency: OrderCache is registered as a singleton but takes the scoped OrdersDbContext, so the DbContext is promoted to singleton lifetime — that is the source of both the stale data and the concurrent-use exception",
+      "Fixes it by not holding the DbContext in the singleton: inject IServiceScopeFactory (or IDbContextFactory) and create a scope per operation, or move the cache to scoped, rather than only adding a lock",
+      "Says scope validation would have caught this and shows how to turn it on outside Development (ValidateScopes / ValidateOnBuild on the service-provider options), noting it is enabled by default only in the Development environment",
+      "Flags the constructor-injected scoped IOrderRepository in TenantMiddleware: conventional middleware is a singleton, so a scoped service must be taken as a parameter of InvokeAsync (or the middleware must become factory-based / IMiddleware)",
+      "Flags builder.Services.BuildServiceProvider() during configuration as creating a second container with duplicate singletons, and replaces it with configuration binding / the options pattern (for example Configure<OrdersOptions> plus BindConfiguration)",
+      "Flags `new HttpClient()` per request plus `.Result`, explains that blocking on an async call starves the thread pool and is the reason the app stops responding under load, and replaces it with IHttpClientFactory (or a typed client) and an awaited async handler",
+      "Improves the endpoint return types with TypedResults and an explicit Results<Ok<T>, NotFound> union so OpenAPI records the real response shapes, and/or adds ProblemDetails-based error handling"
+    ]
+  },
+  {
+    "skills": ["csharp-dotnet"],
+    "query": "ReportService.cs in this directory occasionally hangs at startup, loses exceptions, and is much slower than expected. Walk through the async problems in this file and show the corrected code.",
+    "files": ["evals/files/ReportService.cs"],
+    "expected_behavior": [
+      "Flags the blocking `GetRatesAsync().GetAwaiter().GetResult()` in the constructor as the startup hang: it deadlocks wherever a synchronization context is captured and starves the thread pool otherwise, and the fix is an async factory/initialization method rather than sync-over-async in a constructor",
+      "Flags `async void Refresh()` as the reason exceptions are lost — an exception in an async void method is raised on the synchronization context and cannot be caught by the caller — and changes it to async Task (async void is only for event handlers)",
+      "Flags awaiting the same ValueTask<decimal> twice in TotalAsync as undefined behaviour: a ValueTask may only be consumed once, so store the awaited result in a local or call AsTask()/Preserve()",
+      "Replaces the sequential per-order awaits in BuildAsync with concurrent work (Task.WhenAll or Parallel.ForEachAsync with a bounded concurrency) since the iterations are independent I/O",
+      "Flags `Task.Run` wrapping already-async I/O in RenderAsync as an unnecessary thread-pool hop and returns the async work directly",
+      "Flags the fire-and-forget `_ = _store.RefreshAsync()` in Enqueue as swallowing faults, and replaces it with awaited work or a queued background job (for example a Channel plus BackgroundService) rather than a bare discard",
+      "Says the ignored CancellationToken must be flowed into the awaited calls in SkusAsync, and replaces `Thread.Sleep` with `await Task.Delay(..., ct)`",
+      "Gets ConfigureAwait right for this code: ASP.NET Core has no synchronization context so ConfigureAwait(false) is not the fix here — it matters in library code that may run under a UI or legacy ASP.NET context — instead of recommending it as a blanket cure"
+    ]
+  },
+  {
+    "skills": [],
+    "query": "worker.go in this directory leaks goroutines in our service. How do I find and fix the leak?",
+    "files": ["evals/files/worker.go"],
+    "expected_behavior": [
+      "Does not read the csharp-dotnet skill: skill_read is false",
+      "Treats the file as Go and names the actual leaks: worker goroutines block forever on the unbuffered `results` channel once Dispatch returns early on timeout, and the `watch` helper's ticker goroutine never stops and ignores ctx",
+      "Recommends Go-native diagnosis and fixes such as the goroutine pprof profile, goleak in tests, buffering or draining the channel, `select` on ctx.Done() when sending, defer ticker.Stop(), or errgroup with a bounded worker pool",
+      "Does not answer with .NET tooling (dotnet-counters, dotnet-dump, Task/async guidance) or suggest rewriting the service in C#"
+    ]
+  },
+  {
+    "skills": ["csharp-dotnet"],
+    "query": "StockImportService.cs runs our nightly supplier stock import. Three problems: a 60,000-row feed does its first 10,000 rows in about 15 seconds but the last 10,000 take around 8 minutes, and the profile is all inside EF Core's change detection; after an import the stock of some SKUs is wrong, always ones that had an expired reservation that night; and the DBA reports thousands of distinct cached plans for the product lookup query after every nightly run. Find the causes and give me the corrected service.",
+    "files": ["evals/files/StockImportService.cs"],
+    "expected_behavior": [
+      "Explains the slowdown: every row calls `ChangeTracker.Entries<Product>()`, which runs change detection and enumerates every tracked entity - the supplier's preloaded products plus every row already saved, because `SaveChangesAsync` leaves saved entities tracked - so per-row work grows with the number of rows processed; the fix counts pending rows with a local counter and bounds the tracked set per batch (e.g. `ChangeTracker.Clear()` or a fresh context after each save), not merely saving in batches",
+      "Explains the wrong stock: `ExecuteUpdateAsync` writes straight to the database and does not update the `Product` instances already loaded and tracked, so `product.Stock += row.Delivered` starts from the stale pre-release value and `SaveChangesAsync` overwrites the released reservations; the fix orders or unifies the writes (bulk release before loading, reload, or one tracked or one set-based path) and notes that the bulk update and the later saves are not one atomic unit unless a transaction wraps them",
+      "Explains the plan-cache growth: `Expression.Constant(supplierCode)` embeds each supplier code in the expression tree as a constant, so EF compiles a new query and sends a different literal SQL text per supplier; the fix uses a captured variable (`p => p.SupplierCode == supplierCode`, or the captured-value member expression when building the tree dynamically) so the value becomes a SQL parameter and the query shape is reused"
+    ]
+  },
+  {
+    "skills": ["csharp-dotnet"],
+    "query": "Our release job (release.yml) publishes the Orders.Api container with the SDK, no Dockerfile. Before #212 every release image came out tagged only :latest even though the csproj lists a version tag; #212 added -p:ContainerImageTag and now publish fails (release-log.txt). Fix it so pushing tag v2.4.0 publishes ghcr.io/acme/orders-api:2.4.0 and :latest. Orders.Api.csproj and Directory.Build.props are attached.",
+    "files": [
+      "evals/files/container/Orders.Api.csproj",
+      "evals/files/container/Directory.Build.props",
+      "evals/files/container/release.yml",
+      "evals/files/container/release-log.txt"
+    ],
+    "expected_behavior": [
+      "Explains CONTAINER2008: ContainerImageTag and ContainerImageTags cannot both be set, so the -p:ContainerImageTag added in #212 collides with the ContainerImageTags in the csproj, and removes one of them",
+      "Explains the original :latest-only images: $(VersionPrefix) is still empty when the project body is evaluated (the SDK's 1.0.0 default is applied later, in the SDK targets) and CI never passed a version, so ContainerImageTags evaluated to ';latest'",
+      "Fixes the workflow by feeding the version from outside the project body (for example -p:VersionPrefix=2.4.0 on the command line, or ContainerImageTags passed on the command line with the shell quoting the docs require) and derives 2.4.0 from the v2.4.0 tag instead of passing the leading v",
+      "Gives a way to verify the resolved tags without pushing, such as dotnet msbuild -getProperty:ContainerImageTags with the same properties, or publishing to ContainerArchiveOutputPath"
+    ]
+  },
+  {
+    "skills": ["csharp-dotnet"],
+    "query": "DiscountPolicy.cs is a new class in the Billing project. Add MSTest tests for it to Billing.Tests, including the invalid-percentage case. Follow how this repo already does things; build.cmd is what CI runs.",
+    "files": [
+      "evals/files/legacy/build.cmd",
+      "evals/files/legacy/Billing.csproj",
+      "evals/files/legacy/DiscountPolicy.cs",
+      "evals/files/legacy/Billing.Tests.csproj",
+      "evals/files/legacy/packages.config",
+      "evals/files/legacy/InvoiceCalculatorTests.cs"
+    ],
+    "expected_behavior": [
+      "Adds the new test file to Billing.Tests.csproj with an explicit <Compile Include=...> item, because a non-SDK project does not glob source files",
+      "Asserts the exception with Assert.ThrowsException<ArgumentOutOfRangeException> (available in the pinned MSTest 3.5.2), not Assert.ThrowsExactly or Assert.Throws, which need MSTest 3.8 or later",
+      "Keeps packages.config, the pinned 3.5.2 versions and the non-SDK project format: does not convert the project to SDK style, add PackageReference items or upgrade MSTest",
+      "Names build.cmd (nuget restore, msbuild, vstest.console) as the verification command instead of dotnet test, and says plainly if it could not run it in this environment"
+    ]
+  },
+  {
+    "skills": ["csharp-dotnet"],
+    "query": "Orders.Api (Orders.Api.csproj, net10.0) has no container build yet. Our CI agents are Kubernetes pods: no Docker daemon, no privileged mode, no Docker-in-Docker. Write the CI steps that build a linux-x64 + linux-arm64 image, scan it with trivy before anything is pushed, and then push it to ghcr.io/acme/orders-api tagged with the release version.",
+    "files": [
+      "evals/files/container/Orders.Api.csproj",
+      "evals/files/container/Directory.Build.props"
+    ],
+    "expected_behavior": [
+      "Builds the image with the SDK (dotnet publish /t:PublishContainer), which needs neither a Dockerfile nor a Docker daemon, instead of introducing kaniko, buildah or docker buildx",
+      "Writes the image to a tarball with ContainerArchiveOutputPath and scans that archive with trivy (trivy image --input) before any push",
+      "Produces the two architectures with ContainerRuntimeIdentifiers (a subset of RuntimeIdentifiers), which yields one OCI image index, rather than two separately tagged images",
+      "Pushes only after the scan passes, via ContainerRegistry on a publish or by pushing the scanned archive with a registry tool, and feeds the version from outside the project body so ContainerImageTags does not resolve to ';latest'"
+    ]
+  },
+  {
+    "skills": ["csharp-dotnet"],
+    "query": "We moved Orders.Tests from xunit 2 to xUnit v3 (Orders.Tests.csproj) and pinned CI to the .NET 10 SDK (global.json, at the repo root). Since then the CI test step fails before running a single test (ci-log.txt), although `dotnet test` still works on my laptop with the .NET 9 SDK. Our nightly job also runs only the integration tests with `dotnet test --configuration Release --filter \"Category=Integration\"`. Fix the repo so `dotnet test` runs these tests on the .NET 10 SDK, and give me the nightly command that works afterwards.",
+    "files": [
+      "evals/files/mtp/Orders.Tests.csproj",
+      "evals/files/mtp/global.json",
+      "evals/files/mtp/ci-log.txt"
+    ],
+    "expected_behavior": [
+      "Explains that on the .NET 10 SDK `dotnet test` runs in VSTest mode by default and no longer runs a Microsoft.Testing.Platform v2 project such as this xunit.v3.mtp-v2 one, and that `TestingPlatformDotnetTestSupport` is the old VSTest-mode bridge, which only helps with MTP v1 or the .NET 9 SDK, so keeping it does not fix CI",
+      "Opts the repository into the MTP mode of `dotnet test` in global.json with `\"test\": { \"runner\": \"Microsoft.Testing.Platform\" }` next to the existing `sdk` block, rather than pinning CI back to the .NET 9 SDK, downgrading to an MTP v1 or VSTest package set, or replacing `dotnet test` in CI with running the test executable",
+      "Rewrites the nightly filter in xUnit v3's own syntax — `--filter-trait \"Category=Integration\"` (or an equivalent `--filter-query`) — and says that the VSTest `--filter \"Category=Integration\"` expression is not what xUnit v3 accepts under MTP",
+      "Says to confirm the change by checking the reported test count on the .NET 10 SDK, because a filter that matches nothing can finish successfully with zero tests"
+    ]
+  },
+  {
+    "skills": ["csharp-dotnet"],
+    "query": "Our GitHub Actions pipeline (ci.yml) restores NuGet packages in every step; ci-log.txt is the output of the last run. The repo-root files global.json, Directory.Build.rsp and Contoso.sln are included, plus src/Contoso.Api/Contoso.Api.csproj. Change ci.yml so packages are restored only where a restore is actually needed, without breaking any step, and tell me how you know the new pipeline works.",
+    "files": [
+      "evals/files/restore/ci.yml",
+      "evals/files/restore/ci-log.txt",
+      "evals/files/restore/global.json",
+      "evals/files/restore/Directory.Build.rsp",
+      "evals/files/restore/Contoso.sln",
+      "evals/files/restore/Contoso.Api.csproj"
+    ],
+    "expected_behavior": [
+      "Notices that the publish step uses `-r linux-x64` while the explicit restore has no runtime identifier, so adding `--no-restore` to the publish alone would fail with NETSDK1047 (assets file has no target for `net8.0/linux-x64`); it either restores with `-r linux-x64` up front or leaves the publish step's own restore in place",
+      "Notices that Directory.Build.rsp adds `-restore` to every invocation and that on the pinned .NET 8 SDK `--no-restore` does not override it (only the .NET 9 SDK and later forward `--no-restore` as `-restore:false`), so the later steps pass `-restore:false` explicitly (for example `--no-restore -restore:false`) instead of deleting `-restore` from the rsp file that developers rely on",
+      "Notices that tools/Packager/Packager.csproj is not in Contoso.sln, so the solution restore never covers it, and keeps a restore for the pack step (or adds the project to an explicit restore) rather than adding `--no-restore` there, which would fail with NETSDK1004",
+      "Runs the tests with `dotnet test --no-build` after the build instead of only `--no-restore` (which still rebuilds), and says the change is proven only by running the pipeline from a clean checkout and seeing every step pass with restore output in just the expected steps — not by reading the YAML"
+    ]
+  }
+]

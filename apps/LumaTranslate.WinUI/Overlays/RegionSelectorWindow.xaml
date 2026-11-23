@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="LumaTranslate_WinUI.Overlays.RegionSelectorWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Chọn vùng màn hình">
+
+    <Grid
+        x:Name="SelectorRoot"
+        Background="#580B0F17"
+        KeyDown="SelectorRoot_KeyDown"
+        PointerMoved="SelectorRoot_PointerMoved"
+        PointerPressed="SelectorRoot_PointerPressed"
+        PointerReleased="SelectorRoot_PointerReleased">
+
+        <Canvas x:Name="SelectionCanvas">
+            <Rectangle
+                x:Name="SelectionBox"
+                Fill="#2638BDF8"
+                Stroke="#FF38BDF8"
+                StrokeThickness="2"
+                Visibility="Collapsed" />
+        </Canvas>
+
+        <StackPanel
+            Margin="0,32,0,0"
+            Padding="18,10"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Background="#E6111827"
+            BorderBrush="#5538BDF8"
+            BorderThickness="1"
+            CornerRadius="8"
+            IsHitTestVisible="False"
+            Spacing="4">
+            <TextBlock
+                FontSize="15"
+                FontWeight="SemiBold"
+                Foreground="#FFF8FAFC"
+                Text="Giữ và kéo chuột trái để chọn vùng phụ đề trên màn hình" />
+            <TextBlock
+                x:Name="CoordinatesBadge"
+                HorizontalAlignment="Center"
+                FontSize="12"
+                Foreground="#FF94A3B8"
+                Text="Nhấn phím Esc hoặc chuột phải để hủy" />
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,9 @@
+# Pinned after RTX 3060 (Windows 11 x64, Python 3.12, CUDA 12.8) verification.
+# Install torch & torchaudio from https://download.pytorch.org/whl/cu128
+torch==2.8.0
+torchaudio==2.8.0
+transformers==4.57.6
+vieneu>=3.8.0
+onnxruntime>=1.20.0
+nvidia-ml-py>=12.560.30
+pytest>=8.0.0

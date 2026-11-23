@@ -1,0 +1,75 @@
+{
+  "version": 2,
+  "skills": {
+    "csharp-dotnet": {
+      "source": "Lynricsy/HyperSkills",
+      "commit": "d5cad572b85bbe2b7ab4e2979df5c69a06965afc",
+      "sourceType": "github",
+      "skillPath": "skills/csharp-dotnet/SKILL.md",
+      "computedHash": "13da64c704ec5898e3489c20416a39fd7761247f3edf099a6d237cd241a963b9"
+    },
+    "optimize-for-gpu": {
+      "source": "KalarisLabs/research-agent-skills",
+      "commit": "a74b0dbe5fa865d73b9f250ba5b0c9f107bd1baa",
+      "sourceType": "github",
+      "skillPath": "skills/optimize-for-gpu/SKILL.md",
+      "computedHash": "84f8a042f58007b9218a666b7c6567e9d541115c9f5808fe00a970c40f076ff1"
+    },
+    "python-testing": {
+      "source": "Mindrally/skills",
+      "commit": "7682ca77710e0971eab4e0ae5dddfa281aea0ba5",
+      "sourceType": "github",
+      "skillPath": "python-testing/SKILL.md",
+      "computedHash": "a0c82b3ddcbdfdf88af8c8495ae5d828f8a59003fb1430c39a8f092630917e9e"
+    },
+    "rust-async-patterns": {
+      "source": "rmyndharis/antigravity-skills",
+      "commit": "2ee2cf79b99035fbdabdfe0b1057034195e7571e",
+      "sourceType": "github",
+      "skillPath": "skills/rust-async-patterns/SKILL.md",
+      "computedHash": "c452ff56e896c93c9b40181b8d63cb3dbad3f32c2dc1183fc95380460149cda4"
+    },
+    "rust-pro": {
+      "source": "rmyndharis/antigravity-skills",
+      "commit": "2ee2cf79b99035fbdabdfe0b1057034195e7571e",
+      "sourceType": "github",
+      "skillPath": "skills/rust-pro/SKILL.md",
+      "computedHash": "67e479e619c8bd618572c56b0c9ce78de958794592a9f09111b30d48426407a3"
+    },
+    "winapp-package": {
+      "source": "microsoft/winappCli",
+      "commit": "e7e4587ad7a6e51c085ad6360a10ede0cee7ab6e",
+      "sourceType": "github",
+      "skillPath": "plugins/winapp/skills/winapp-package/SKILL.md",
+      "computedHash": "8ca9b176ab644795155cef96ebca829162bbfbe4d6148c320279e1365fa08612"
+    },
+    "winapp-setup": {
+      "source": "microsoft/winappCli",
+      "commit": "e7e4587ad7a6e51c085ad6360a10ede0cee7ab6e",
+      "sourceType": "github",
+      "skillPath": "plugins/winapp/skills/winapp-setup/SKILL.md",
+      "computedHash": "8d28651c697a385078ede6e46f700f8c3d572e6d380d95ea0e52d3016b4b6887"
+    },
+    "winapp-ui-automation": {
+      "source": "microsoft/winappCli",
+      "commit": "e7e4587ad7a6e51c085ad6360a10ede0cee7ab6e",
+      "sourceType": "github",
+      "skillPath": "plugins/winapp/skills/winapp-ui-automation/SKILL.md",
+      "computedHash": "ac8537e3a57ec4345f57df25f8c0e77247e0dff300106814caa4b5177e240489"
+    },
+    "winui-app": {
+      "source": "openai/skills",
+      "commit": "49f948faa9258a0c61caceaf225e179651397431",
+      "sourceType": "github",
+      "skillPath": "skills/.curated/winui-app/SKILL.md",
+      "computedHash": "9432aff0900c439e989f1d33e09f484a705a7843efde52963238ef85113fedfe"
+    },
+    "winui-devtools": {
+      "source": "microsoft/winappCli",
+      "commit": "e7e4587ad7a6e51c085ad6360a10ede0cee7ab6e",
+      "sourceType": "github",
+      "skillPath": "plugins/winapp/skills/winui-devtools/SKILL.md",
+      "computedHash": "4c7db17c1c0d71147161a9a567a129b2dd6bb890e83efc5477f9098855a5ccdb"
+    }
+  }
+}

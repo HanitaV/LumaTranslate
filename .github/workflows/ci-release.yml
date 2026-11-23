@@ -1,0 +1,51 @@
+name: CI & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Rust workspace unit & pipeline integration tests
+        working-directory: backend
+        run: cargo test --workspace --toolchain stable-x86_64-pc-windows-msvc
+
+      - name: Run Python worker protocol unit tests
+        run: |
+          python -m pip install --upgrade pip pytest
+          python -m pytest tests/unit -v
+
+      - name: Package self-contained Windows x64 distribution
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          cargo build --manifest-path backend/Cargo.toml --release --toolchain stable-x86_64-pc-windows-msvc
+          dotnet publish apps/LumaTranslate.WinUI/LumaTranslate.WinUI.csproj -c Release -r win-x64 -p:Platform=x64 -p:WindowsAppSDKSelfContained=true --self-contained true -p:PublishTrimmed=false -o dist/LumaTranslate-win-x64
+          Copy-Item -Force backend/target/release/luma_translate_backend.exe dist/LumaTranslate-win-x64/LumaTranslate.Backend.exe
+          New-Item -ItemType Directory -Force -Path dist/LumaTranslate-win-x64/workers/ocr, dist/LumaTranslate-win-x64/workers/tts, dist/LumaTranslate-win-x64/workers/shared | Out-Null
+          Copy-Item -Force workers/shared/protocol.py dist/LumaTranslate-win-x64/workers/shared/protocol.py
+          Copy-Item -Force workers/ocr/*.py, workers/ocr/requirements.txt dist/LumaTranslate-win-x64/workers/ocr/
+          Copy-Item -Force workers/tts/*.py, workers/tts/requirements.txt dist/LumaTranslate-win-x64/workers/tts/
+          Copy-Item -Force installer/install.ps1 dist/LumaTranslate-win-x64/install-runtimes.ps1
+          Copy-Item -Force README.md, LICENSE dist/LumaTranslate-win-x64/
+          Compress-Archive -Path dist/LumaTranslate-win-x64/* -DestinationPath dist/LumaTranslate-${{ github.ref_name }}-win-x64.zip -Force
