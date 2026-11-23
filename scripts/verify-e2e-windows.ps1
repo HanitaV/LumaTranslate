@@ -15,7 +15,7 @@ New-Item -ItemType Directory -Force -Path $ScreenshotDir | Out-Null
 $env:WINAPP_UI_WORKFLOW_ID = [guid]::NewGuid().ToString()
 
 # Clean any leftover processes and previous test regions/history in isolated or default store
-Get-Process -Name "LumaTranslate.WinUI", "LumaTranslate.Backend", "luma_translate_backend" -ErrorAction SilentlyContinue |
+Get-Process -Name "LumaTranslate", "LumaTranslate.WinUI", "LumaTranslate.Backend", "luma_translate_backend" -ErrorAction SilentlyContinue |
     Stop-Process -Force -ErrorAction SilentlyContinue
 
 $ctrlFile = Join-Path $env:TEMP "luma_e2e_fixture_text.txt"
@@ -66,7 +66,7 @@ try {
     $ovHwnd = $null
     for ($i = 0; $i -lt 20; $i++) {
         Start-Sleep -Milliseconds 800
-        $winJson = & winapp ui list-windows -a LumaTranslate.WinUI --json 2>$null
+        $winJson = & winapp ui list-windows -a LumaTranslate --json 2>$null
         if ($LASTEXITCODE -eq 0 -and $winJson) {
             $rawList = $winJson | ConvertFrom-Json
             foreach ($w in $rawList) {

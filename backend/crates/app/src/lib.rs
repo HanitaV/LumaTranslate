@@ -673,7 +673,15 @@ impl IpcCommandHandler for PipelineCoordinator {
                         height,
                     }),
                 };
-                ok_state_response(req_id, self.snapshot())
+                IpcServerMessage::Response {
+                    request_id: req_id,
+                    ok: true,
+                    error: None,
+                    state: None,
+                    monitors: None,
+                    history: None,
+                    test_translation_result: None,
+                }
             }
             IpcRequest::TestTranslation {
                 provider,

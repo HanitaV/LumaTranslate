@@ -60,5 +60,6 @@ public partial class App : Application
     {
         MainWindowInstance = new MainWindow();
         MainWindowInstance.Activate();
+        MainWindowInstance.StartInitialFlow();
     }
 }

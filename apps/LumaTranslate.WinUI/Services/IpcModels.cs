@@ -84,6 +84,33 @@ public sealed class OverlaySettingsDto
 
     [JsonPropertyName("locked_click_through")]
     public bool LockedClickThrough { get; set; } = true;
+
+    public OverlaySettingsDto Clone() => new()
+    {
+        FontSize = FontSize,
+        Opacity = Opacity,
+        X = X,
+        Y = Y,
+        Width = Width,
+        Height = Height,
+        LockedClickThrough = LockedClickThrough,
+    };
+
+    public bool ContentEquals(OverlaySettingsDto? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        return Math.Abs(FontSize - other.FontSize) < 0.01
+            && Math.Abs(Opacity - other.Opacity) < 0.005
+            && X == other.X
+            && Y == other.Y
+            && Width == other.Width
+            && Height == other.Height
+            && LockedClickThrough == other.LockedClickThrough;
+    }
 }
 
 public sealed class ProviderCredentialsDto

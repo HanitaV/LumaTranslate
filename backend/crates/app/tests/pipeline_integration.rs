@@ -537,6 +537,33 @@ async fn prevents_stale_out_of_order_translations_and_handles_errors_and_worker_
     assert!(errors.contains(&"OCR_ERROR".to_string()));
     assert!(errors.iter().filter(|c| *c == "TRANSLATION_ERROR").count() >= 3);
 
+    // RegisterOverlayWindow must acknowledge without echoing a full state snapshot
+    // (prevents IPC <-> UI overlay registration feedback loops).
+    let reg_resp = adapter
+        .handle_request(IpcRequest::RegisterOverlayWindow {
+            request_id: 99,
+            hwnd: 0x123456,
+            capture_excluded: true,
+            x: 260,
+            y: 780,
+            width: 960,
+            height: 150,
+        })
+        .await;
+    match reg_resp {
+        IpcServerMessage::Response {
+            request_id,
+            ok,
+            state,
+            ..
+        } => {
+            assert_eq!(request_id, 99);
+            assert!(ok);
+            assert!(state.is_none(), "RegisterOverlayWindow should not echo state snapshot");
+        }
+        other => panic!("Unexpected response for RegisterOverlayWindow: {other:?}"),
+    }
+
     coord.shutdown_all().await;
     let _ = std::fs::remove_file(&db_path);
 }

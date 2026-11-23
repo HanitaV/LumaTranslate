@@ -12,6 +12,7 @@ public sealed partial class SubtitleOverlayWindow : Window
     private readonly nint _hwnd;
     private bool _lockedClickThrough = true;
     private bool _captureExcluded;
+    private bool _isApplyingSettings;
 
     public ulong HwndValue => (ulong)_hwnd;
     public bool IsCaptureExcluded => _captureExcluded;
@@ -39,21 +40,32 @@ public sealed partial class SubtitleOverlayWindow : Window
 
     public void ApplySettings(OverlaySettingsDto settings)
     {
-        _lockedClickThrough = settings.LockedClickThrough;
-        VietnameseSubtitleText.FontSize = Math.Clamp(settings.FontSize, 14.0, 56.0);
-        DragHintText.Visibility = _lockedClickThrough ? Visibility.Collapsed : Visibility.Visible;
+        _isApplyingSettings = true;
+        try
+        {
+            _lockedClickThrough = settings.LockedClickThrough;
+            VietnameseSubtitleText.FontSize = Math.Clamp(settings.FontSize, 14.0, 56.0);
+            DragHintText.Visibility = _lockedClickThrough ? Visibility.Collapsed : Visibility.Visible;
 
-        AppWindow.MoveAndResize(new RectInt32(
-            settings.X,
-            settings.Y,
-            (int)Math.Clamp(settings.Width, 320u, 3840u),
-            (int)Math.Clamp(settings.Height, 80u, 800u)));
+            int targetW = (int)Math.Clamp(settings.Width, 320u, 3840u);
+            int targetH = (int)Math.Clamp(settings.Height, 80u, 800u);
+            PointInt32 curPos = AppWindow.Position;
+            SizeInt32 curSize = AppWindow.Size;
+            if (curPos.X != settings.X || curPos.Y != settings.Y || curSize.Width != targetW || curSize.Height != targetH)
+            {
+                AppWindow.MoveAndResize(new RectInt32(settings.X, settings.Y, targetW, targetH));
+            }
 
-        _captureExcluded = Win32WindowInterop.TryExcludeFromCapture(_hwnd);
-        Win32WindowInterop.ConfigureSubtitleOverlayStyles(
-            _hwnd,
-            clickThrough: _lockedClickThrough,
-            opacity: Math.Clamp(settings.Opacity, 0.30, 1.0));
+            _captureExcluded = Win32WindowInterop.TryExcludeFromCapture(_hwnd);
+            Win32WindowInterop.ConfigureSubtitleOverlayStyles(
+                _hwnd,
+                clickThrough: _lockedClickThrough,
+                opacity: Math.Clamp(settings.Opacity, 0.30, 1.0));
+        }
+        finally
+        {
+            _isApplyingSettings = false;
+        }
     }
 
     public void ShowWithoutStealingFocus()
@@ -100,7 +112,7 @@ public sealed partial class SubtitleOverlayWindow : Window
 
     private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
     {
-        if (!_lockedClickThrough && (args.DidPositionChange || args.DidSizeChange))
+        if (!_isApplyingSettings && !_lockedClickThrough && (args.DidPositionChange || args.DidSizeChange))
         {
             PointInt32 pos = sender.Position;
             SizeInt32 sz = sender.Size;

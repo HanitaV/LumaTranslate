@@ -113,6 +113,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private readonly BackendIpcClient _ipcClient = new();
     private DispatcherQueue? _dispatcher;
     private AppSettingsDto _settings = new();
+    private OverlaySettingsDto? _lastAppliedOverlaySettings;
     private List<MonitorInfoDto> _monitors = [];
 
     private bool _isConnected;
@@ -288,11 +289,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         try
         {
-            IpcServerEnvelope env = await _ipcClient.GetStateAsync();
-            if (env.State is not null)
-            {
-                EnqueueUi(() => ApplyStateSnapshot(env.State));
-            }
+            await _ipcClient.GetStateAsync();
         }
         catch (Exception ex)
         {
@@ -351,7 +348,20 @@ public sealed class MainViewModel : INotifyPropertyChanged
             ApplySubtitleUpdate(snap.CurrentSubtitle, notifyOverlay: false);
         }
 
-        OverlaySettingsChanged?.Invoke(_settings.Overlay);
+        if (_lastAppliedOverlaySettings is null || !_settings.Overlay.ContentEquals(_lastAppliedOverlaySettings))
+        {
+            _lastAppliedOverlaySettings = _settings.Overlay.Clone();
+            OverlaySettingsChanged?.Invoke(_settings.Overlay.Clone());
+        }
+    }
+
+    public void UpdateOverlayBoundsFromUser(int x, int y, uint width, uint height)
+    {
+        _settings.Overlay.X = x;
+        _settings.Overlay.Y = y;
+        _settings.Overlay.Width = width;
+        _settings.Overlay.Height = height;
+        _lastAppliedOverlaySettings = _settings.Overlay.Clone();
     }
 
     private void ApplyWorkerStates(WorkerRuntimeStateDto ocr, WorkerRuntimeStateDto tts)
@@ -571,7 +581,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         await _ipcClient.RequestBackendShutdownAsync();
         await _ipcClient.DisposeAsync();
-        _processManager.Dispose();
+        await _processManager.ShutdownAsync();
     }
 
     public static string FormatLanguageVi(string code) =>

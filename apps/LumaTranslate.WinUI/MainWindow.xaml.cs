@@ -10,6 +10,8 @@ namespace LumaTranslate_WinUI;
 public sealed partial class MainWindow : Window
 {
     private SubtitleOverlayWindow? _overlayWindow;
+    private (ulong Hwnd, bool CaptureExcluded, int X, int Y, uint Width, uint Height)? _lastRegisteredOverlay;
+    private CancellationTokenSource? _overlayBoundsDebounceCts;
     private bool _mainShellStarted;
     private bool _shuttingDown;
 
@@ -27,7 +29,10 @@ public sealed partial class MainWindow : Window
         AppWindow.Resize(new SizeInt32(980, 740));
 
         Closed += MainWindow_Closed;
+    }
 
+    public void StartInitialFlow()
+    {
         ResolvedEnvironmentPaths env = EnvironmentBootstrapService.InspectEnvironment();
         if (App.ForceSetupWizard || !env.IsReady)
         {
@@ -61,13 +66,10 @@ public sealed partial class MainWindow : Window
             _overlayWindow.ApplySettings(App.ViewModel.Settings.Overlay);
             _overlayWindow.ShowWithoutStealingFocus();
 
-            _overlayWindow.BoundsChangedByUser += async (x, y, w, h) =>
+            _overlayWindow.BoundsChangedByUser += (x, y, w, h) =>
             {
-                App.ViewModel.Settings.Overlay.X = x;
-                App.ViewModel.Settings.Overlay.Y = y;
-                App.ViewModel.Settings.Overlay.Width = w;
-                App.ViewModel.Settings.Overlay.Height = h;
-                await RegisterOverlayWithBackendAsync();
+                App.ViewModel.UpdateOverlayBoundsFromUser(x, y, w, h);
+                ScheduleDebouncedOverlayRegistration();
             };
 
             App.ViewModel.SubtitleChangedForOverlay += sub =>
@@ -89,7 +91,11 @@ public sealed partial class MainWindow : Window
             {
                 if (connected)
                 {
-                    DispatcherQueue.TryEnqueue(() => _ = RegisterOverlayWithBackendAsync());
+                    DispatcherQueue.TryEnqueue(() => _ = RegisterOverlayWithBackendAsync(force: true));
+                }
+                else
+                {
+                    DispatcherQueue.TryEnqueue(() => _lastRegisteredOverlay = null);
                 }
             };
         }
@@ -115,7 +121,26 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private async Task RegisterOverlayWithBackendAsync()
+    private void ScheduleDebouncedOverlayRegistration()
+    {
+        _overlayBoundsDebounceCts?.Cancel();
+        _overlayBoundsDebounceCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _overlayBoundsDebounceCts = cts;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(180, cts.Token).ConfigureAwait(false);
+                DispatcherQueue.TryEnqueue(() => _ = RegisterOverlayWithBackendAsync());
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        });
+    }
+
+    private async Task RegisterOverlayWithBackendAsync(bool force = false)
     {
         if (_overlayWindow is null || !App.ViewModel.Ipc.IsConnected)
         {
@@ -124,16 +149,29 @@ public sealed partial class MainWindow : Window
         try
         {
             OverlaySettingsDto o = App.ViewModel.Settings.Overlay;
-            await App.ViewModel.Ipc.RegisterOverlayWindowAsync(
-                _overlayWindow.HwndValue,
-                _overlayWindow.IsCaptureExcluded,
+            var registration = (
+                Hwnd: _overlayWindow.HwndValue,
+                CaptureExcluded: _overlayWindow.IsCaptureExcluded,
                 o.X,
                 o.Y,
                 o.Width,
                 o.Height);
+            if (!force && _lastRegisteredOverlay == registration)
+            {
+                return;
+            }
+            _lastRegisteredOverlay = registration;
+            await App.ViewModel.Ipc.RegisterOverlayWindowAsync(
+                registration.Hwnd,
+                registration.CaptureExcluded,
+                registration.X,
+                registration.Y,
+                registration.Width,
+                registration.Height);
         }
         catch
         {
+            _lastRegisteredOverlay = null;
         }
     }
 
@@ -165,6 +203,9 @@ public sealed partial class MainWindow : Window
 
         try
         {
+            _overlayBoundsDebounceCts?.Cancel();
+            _overlayBoundsDebounceCts?.Dispose();
+            _overlayBoundsDebounceCts = null;
             _overlayWindow?.Close();
             _overlayWindow = null;
             if (_mainShellStarted)

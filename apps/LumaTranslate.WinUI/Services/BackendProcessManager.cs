@@ -144,6 +144,45 @@ public sealed class BackendProcessManager : IDisposable
         return null;
     }
 
+    public async Task ShutdownAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        _disposed = true;
+
+        Process? proc = _backendProcess;
+        _backendProcess = null;
+        if (proc is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!proc.HasExited)
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(1500));
+                try
+                {
+                    await proc.WaitForExitAsync(cts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    proc.Kill(entireProcessTree: true);
+                }
+            }
+        }
+        catch
+        {
+        }
+        finally
+        {
+            proc.Dispose();
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -156,10 +195,7 @@ public sealed class BackendProcessManager : IDisposable
         {
             if (_backendProcess is { HasExited: false })
             {
-                if (!_backendProcess.WaitForExit(1500))
-                {
-                    _backendProcess.Kill(entireProcessTree: true);
-                }
+                _backendProcess.Kill(entireProcessTree: true);
             }
         }
         catch
