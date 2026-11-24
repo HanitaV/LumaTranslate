@@ -43,6 +43,7 @@ public sealed partial class SetupWizardPage : Page
     {
         StartInstallBtn.IsEnabled = false;
         SkipToAppBtn.IsEnabled = false;
+        UninstallFromSetupBtn.IsEnabled = false;
         DownloadModelsCheckBox.IsEnabled = false;
         ForceReinstallCheckBox.IsEnabled = false;
         CancelSetupBtn.IsEnabled = true;
@@ -104,6 +105,7 @@ public sealed partial class SetupWizardPage : Page
             _installCts = null;
             StartInstallBtn.IsEnabled = true;
             SkipToAppBtn.IsEnabled = true;
+            UninstallFromSetupBtn.IsEnabled = true;
             DownloadModelsCheckBox.IsEnabled = true;
             ForceReinstallCheckBox.IsEnabled = true;
             CancelSetupBtn.IsEnabled = false;
@@ -122,5 +124,13 @@ public sealed partial class SetupWizardPage : Page
     private void SkipToAppBtn_Click(object sender, RoutedEventArgs e)
     {
         App.MainWindowInstance?.CompleteSetupAndLaunchMainShell();
+    }
+
+    private async void UninstallFromSetupBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (App.MainWindowInstance is not null)
+        {
+            await App.MainWindowInstance.TriggerUninstallFlowAsync();
+        }
     }
 }

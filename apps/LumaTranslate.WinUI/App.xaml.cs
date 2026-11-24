@@ -11,6 +11,7 @@ public partial class App : Application
     public static bool ForceSetupWizard { get; private set; }
     public static bool AutoRunSetupOnLaunch { get; private set; }
     public static bool ExitAfterSetup { get; private set; }
+    public static bool LaunchUninstallMode { get; private set; }
 
     public App()
     {
@@ -34,6 +35,10 @@ public partial class App : Application
                     break;
                 case "--exit-after-setup":
                     ExitAfterSetup = true;
+                    break;
+                case "--uninstall":
+                case "--remove":
+                    LaunchUninstallMode = true;
                     break;
             }
         }

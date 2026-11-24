@@ -11,7 +11,7 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid>
+    <Grid x:Name="RootShellGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -62,5 +62,34 @@
 
             <Frame x:Name="ContentFrame" />
         </NavigationView>
+
+        <Grid
+            x:Name="UninstallBusyOverlay"
+            Grid.Row="1"
+            Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}"
+            Visibility="Collapsed">
+            <StackPanel
+                MaxWidth="480"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="14">
+                <ProgressRing
+                    Width="44"
+                    Height="44"
+                    HorizontalAlignment="Center"
+                    IsActive="True" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Style="{ThemeResource SubtitleTextBlockStyle}"
+                    Text="Đang gỡ cài đặt LumaTranslate..." />
+                <TextBlock
+                    x:Name="UninstallBusyStatusText"
+                    HorizontalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="Đang dừng tiến trình nền và dọn dẹp dữ liệu..."
+                    TextAlignment="Center"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

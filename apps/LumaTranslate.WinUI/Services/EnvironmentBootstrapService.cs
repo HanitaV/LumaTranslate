@@ -431,6 +431,8 @@ public static class EnvironmentBootstrapService
             await WriteModelManifestAsync(ManagedModelsRoot, ct).ConfigureAwait(false);
         }
 
+        UninstallService.RegisterWindowsUninstaller();
+
         progress.Report(new SetupProgressUpdate(
             100,
             "Hoàn tất cài đặt môi trường! Đang khởi động LumaTranslate...",

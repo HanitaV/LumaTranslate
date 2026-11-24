@@ -63,6 +63,23 @@ public sealed partial class SettingsPage : Page
         {
             _loadingForm = false;
         }
+
+        _ = RefreshStorageUsageSummaryAsync();
+    }
+
+    private async Task RefreshStorageUsageSummaryAsync()
+    {
+        try
+        {
+            UninstallInspection info = await UninstallService.InspectAsync();
+            StorageUsageSummaryText.Text =
+                $"Thư mục cục bộ ({info.AppDataRoot}): Môi trường AI & mô hình {UninstallService.FormatBytesVi(info.AiEnvironmentBytes)} • " +
+                $"Dữ liệu cá nhân & lịch sử {UninstallService.FormatBytesVi(info.UserDataBytes)}";
+        }
+        catch
+        {
+            StorageUsageSummaryText.Text = $"Thư mục cục bộ: {EnvironmentBootstrapService.AppLocalDataRoot}";
+        }
     }
 
     private AppSettingsDto CollectSettingsFromForm()
@@ -171,15 +188,32 @@ public sealed partial class SettingsPage : Page
     private async void ClearCacheBtn_Click(object sender, RoutedEventArgs e)
     {
         await ViewModel.ClearCacheAsync();
+        UninstallService.InvalidateCache();
+        await RefreshStorageUsageSummaryAsync();
     }
 
     private async void ClearHistoryBtn_Click(object sender, RoutedEventArgs e)
     {
         await ViewModel.ClearHistoryAsync();
+        UninstallService.InvalidateCache();
+        await RefreshStorageUsageSummaryAsync();
     }
 
     private void OpenSetupWizardBtn_Click(object sender, RoutedEventArgs e)
     {
         App.MainWindowInstance?.OpenSetupWizard();
+    }
+
+    private void OpenAppDataFolderBtn_Click(object sender, RoutedEventArgs e)
+    {
+        UninstallService.OpenAppDataFolderInExplorer();
+    }
+
+    private async void UninstallAppBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (App.MainWindowInstance is not null)
+        {
+            await App.MainWindowInstance.TriggerUninstallFlowAsync();
+        }
     }
 }

@@ -101,29 +101,49 @@
                 TextWrapping="Wrap" />
         </ScrollViewer>
 
-        <StackPanel
-            Grid.Row="4"
-            HorizontalAlignment="Right"
-            Orientation="Horizontal"
-            Spacing="12">
+        <Grid Grid.Row="4" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
             <Button
-                x:Name="SkipToAppBtn"
-                AutomationProperties.AutomationId="SetupSkipButton"
-                Click="SkipToAppBtn_Click"
-                Content="Mở ứng dụng ngay"
-                Visibility="Collapsed" />
-            <Button
-                x:Name="CancelSetupBtn"
-                AutomationProperties.AutomationId="SetupCancelButton"
-                Click="CancelSetupBtn_Click"
-                Content="Hủy"
-                IsEnabled="False" />
-            <Button
-                x:Name="StartInstallBtn"
-                AutomationProperties.AutomationId="SetupStartInstallButton"
-                Click="StartInstallBtn_Click"
-                Content="Cài đặt môi trường &amp; Khởi động"
-                Style="{ThemeResource AccentButtonStyle}" />
-        </StackPanel>
+                x:Name="UninstallFromSetupBtn"
+                Grid.Column="0"
+                AutomationProperties.AutomationId="SetupUninstallButton"
+                Click="UninstallFromSetupBtn_Click"
+                Foreground="{ThemeResource SystemFillColorCriticalBrush}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <SymbolIcon Symbol="Delete" />
+                    <TextBlock Text="Gỡ cài đặt / Dọn dẹp..." />
+                </StackPanel>
+            </Button>
+
+            <StackPanel
+                Grid.Column="2"
+                HorizontalAlignment="Right"
+                Orientation="Horizontal"
+                Spacing="12">
+                <Button
+                    x:Name="SkipToAppBtn"
+                    AutomationProperties.AutomationId="SetupSkipButton"
+                    Click="SkipToAppBtn_Click"
+                    Content="Mở ứng dụng ngay"
+                    Visibility="Collapsed" />
+                <Button
+                    x:Name="CancelSetupBtn"
+                    AutomationProperties.AutomationId="SetupCancelButton"
+                    Click="CancelSetupBtn_Click"
+                    Content="Hủy"
+                    IsEnabled="False" />
+                <Button
+                    x:Name="StartInstallBtn"
+                    AutomationProperties.AutomationId="SetupStartInstallButton"
+                    Click="StartInstallBtn_Click"
+                    Content="Cài đặt môi trường &amp; Khởi động"
+                    Style="{ThemeResource AccentButtonStyle}" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </Page>

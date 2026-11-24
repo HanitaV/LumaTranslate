@@ -47,5 +47,6 @@ jobs:
           Copy-Item -Force workers/ocr/*.py, workers/ocr/requirements.txt dist/LumaTranslate-win-x64/workers/ocr/
           Copy-Item -Force workers/tts/*.py, workers/tts/requirements.txt dist/LumaTranslate-win-x64/workers/tts/
           Copy-Item -Force installer/install.ps1 dist/LumaTranslate-win-x64/install-runtimes.ps1
+          Copy-Item -Force installer/uninstall.ps1 dist/LumaTranslate-win-x64/uninstall.ps1
           Copy-Item -Force README.md, LICENSE dist/LumaTranslate-win-x64/
           Compress-Archive -Path dist/LumaTranslate-win-x64/* -DestinationPath dist/LumaTranslate-${{ github.ref_name }}-win-x64.zip -Force

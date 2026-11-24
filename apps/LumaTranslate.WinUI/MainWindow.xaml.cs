@@ -1,3 +1,4 @@
+using LumaTranslate_WinUI.Controls;
 using LumaTranslate_WinUI.Overlays;
 using LumaTranslate_WinUI.Services;
 using LumaTranslate_WinUI.Views;
@@ -14,6 +15,7 @@ public sealed partial class MainWindow : Window
     private CancellationTokenSource? _overlayBoundsDebounceCts;
     private bool _mainShellStarted;
     private bool _shuttingDown;
+    private bool _uninstalling;
 
     public MainWindow()
     {
@@ -36,6 +38,12 @@ public sealed partial class MainWindow : Window
 
     public void StartInitialFlow()
     {
+        if (App.LaunchUninstallMode)
+        {
+            _ = LaunchDirectUninstallModeAsync();
+            return;
+        }
+
         ResolvedEnvironmentPaths env = EnvironmentBootstrapService.InspectEnvironment();
         if (App.ForceSetupWizard || !env.IsReady)
         {
@@ -44,6 +52,87 @@ public sealed partial class MainWindow : Window
         else
         {
             CompleteSetupAndLaunchMainShell();
+        }
+    }
+
+    private async Task LaunchDirectUninstallModeAsync()
+    {
+        if (RootShellGrid.XamlRoot is null)
+        {
+            var tcs = new TaskCompletionSource();
+            void OnLoaded(object sender, RoutedEventArgs e)
+            {
+                RootShellGrid.Loaded -= OnLoaded;
+                tcs.TrySetResult();
+            }
+            RootShellGrid.Loaded += OnLoaded;
+            await tcs.Task;
+        }
+
+        await TriggerUninstallFlowAsync(exitIfCancelled: true, defaultRemoveAppFolder: true);
+    }
+
+    public async Task TriggerUninstallFlowAsync(
+        bool exitIfCancelled = false,
+        bool defaultRemoveAppFolder = false)
+    {
+        if (_uninstalling || RootShellGrid.XamlRoot is null)
+        {
+            return;
+        }
+
+        UninstallOptions? options = await UninstallDialog.ShowAsync(
+            RootShellGrid.XamlRoot,
+            defaultRemoveAppFolder);
+
+        if (options is null)
+        {
+            if (exitIfCancelled)
+            {
+                _shuttingDown = true;
+                Close();
+            }
+            return;
+        }
+
+        _uninstalling = true;
+        _overlayWindow?.HideOverlay();
+        ShellNav.IsEnabled = false;
+        SetupHostFrame.IsEnabled = false;
+        UninstallBusyOverlay.Visibility = Visibility.Visible;
+
+        var statusProgress = new Progress<string>(msg =>
+        {
+            DispatcherQueue.TryEnqueue(() => UninstallBusyStatusText.Text = msg);
+        });
+
+        try
+        {
+            await UninstallService.ExecuteUninstallAsync(
+                options,
+                gracefulShutdownAsync: async () =>
+                {
+                    _overlayBoundsDebounceCts?.Cancel();
+                    _overlayBoundsDebounceCts?.Dispose();
+                    _overlayBoundsDebounceCts = null;
+
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        _overlayWindow?.Close();
+                        _overlayWindow = null;
+                    });
+
+                    if (_mainShellStarted)
+                    {
+                        await App.ViewModel.ShutdownAsync();
+                    }
+                },
+                statusProgress: statusProgress);
+        }
+        finally
+        {
+            _shuttingDown = true;
+            Close();
         }
     }
 

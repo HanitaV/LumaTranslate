@@ -60,6 +60,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -SkipGpu
 - **CLI Flags**:
   - `LumaTranslate.exe --setup` — Force-open the built-in environment installer/repair wizard.
   - `LumaTranslate.exe --auto-install --exit-after-setup` — Run unattended environment provisioning and exit when complete.
+  - `LumaTranslate.exe --uninstall` — Open the Vietnamese uninstaller dialog to remove local AI runtimes, models, user data, shortcuts, and/or the packaged app folder.
 
 ```powershell
 .\apps\LumaTranslate.WinUI\bin\x64\Release\net10.0-windows10.0.26100.0\win-x64\LumaTranslate.exe
@@ -71,6 +72,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -SkipGpu
 powershell -ExecutionPolicy Bypass -File .\scripts\package.ps1
 # End users simply run dist\LumaTranslate-win-x64\LumaTranslate.exe directly!
 ```
+
+### 7. Uninstall LumaTranslate
+
+You can uninstall LumaTranslate and clean up `%LOCALAPPDATA%\LumaTranslate` (`runtimes`, `models`, `tools`, `data`) from any of the following places:
+
+- **In-App Settings**: Open **Cài đặt → Quản lý dữ liệu, môi trường AI & Gỡ cài đặt phần mềm → Gỡ cài đặt phần mềm...** (or click **Gỡ cài đặt / Dọn dẹp...** on the Setup Wizard).
+- **Windows Installed Apps**: **Settings → Apps → Installed apps → LumaTranslate → Uninstall** (registered automatically under `HKCU` for packaged installs).
+- **PowerShell / Standalone Script**: Run `uninstall.ps1` in the packaged folder (`powershell -ExecutionPolicy Bypass -File .\installer\uninstall.ps1`, or add `-Unattended -RemoveAppFolder` for silent removal).
 
 ## Documentation
 

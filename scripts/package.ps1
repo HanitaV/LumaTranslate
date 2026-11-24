@@ -63,6 +63,7 @@ if ($BundleVirtualEnvs) {
 }
 
 Copy-Item -Force (Join-Path $RepoRoot "installer\install.ps1") (Join-Path $DistPath "install-runtimes.ps1")
+Copy-Item -Force (Join-Path $RepoRoot "installer\uninstall.ps1") (Join-Path $DistPath "uninstall.ps1")
 Copy-Item -Force (Join-Path $RepoRoot "README.md") (Join-Path $DistPath "README.md") -ErrorAction SilentlyContinue
 Copy-Item -Force (Join-Path $RepoRoot "LICENSE") (Join-Path $DistPath "LICENSE")
 

@@ -269,41 +269,88 @@
                     Toggled="ClickThroughSwitch_Toggled" />
             </StackPanel>
 
-            <!-- Data & Save Actions -->
-            <Grid ColumnSpacing="12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+            <!-- Data, Environment & Uninstall Management -->
+            <StackPanel
+                Padding="18"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Spacing="12">
+                <TextBlock
+                    Style="{ThemeResource SubtitleTextBlockStyle}"
+                    Text="Quản lý dữ liệu, môi trường AI &amp; Gỡ cài đặt phần mềm" />
+                <TextBlock
+                    x:Name="StorageUsageSummaryText"
+                    AutomationProperties.AutomationId="StorageUsageSummaryText"
+                    FontSize="13"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="Đang kiểm tra dung lượng dữ liệu và môi trường cục bộ..."
+                    TextWrapping="Wrap" />
 
-                <Button
-                    Grid.Column="0"
-                    AutomationProperties.AutomationId="SaveSettingsButton"
-                    Click="SaveSettingsBtn_Click"
-                    Content="Lưu tất cả cài đặt"
-                    Style="{ThemeResource AccentButtonStyle}" />
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button
+                        AutomationProperties.AutomationId="SaveSettingsButton"
+                        Click="SaveSettingsBtn_Click"
+                        Content="Lưu tất cả cài đặt"
+                        Style="{ThemeResource AccentButtonStyle}" />
 
-                <Button
-                    Grid.Column="1"
-                    AutomationProperties.AutomationId="OpenSetupWizardButton"
-                    Click="OpenSetupWizardBtn_Click"
-                    Content="Kiểm tra / Cài đặt lại môi trường AI" />
+                    <Button
+                        AutomationProperties.AutomationId="ClearCacheButton"
+                        Click="ClearCacheBtn_Click"
+                        Content="Xóa bộ nhớ đệm dịch" />
 
-                <Button
-                    Grid.Column="3"
-                    AutomationProperties.AutomationId="ClearCacheButton"
-                    Click="ClearCacheBtn_Click"
-                    Content="Xóa bộ nhớ đệm dịch" />
+                    <Button
+                        AutomationProperties.AutomationId="ClearHistoryButton"
+                        Click="ClearHistoryBtn_Click"
+                        Content="Xóa lịch sử hội thoại" />
+                </StackPanel>
 
-                <Button
-                    Grid.Column="4"
-                    AutomationProperties.AutomationId="ClearHistoryButton"
-                    Click="ClearHistoryBtn_Click"
-                    Content="Xóa lịch sử hội thoại" />
-            </Grid>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button
+                        AutomationProperties.AutomationId="OpenSetupWizardButton"
+                        Click="OpenSetupWizardBtn_Click"
+                        Content="Kiểm tra / Cài đặt lại môi trường AI" />
+
+                    <Button
+                        AutomationProperties.AutomationId="OpenAppDataFolderButton"
+                        Click="OpenAppDataFolderBtn_Click"
+                        Content="Mở thư mục dữ liệu cục bộ" />
+                </StackPanel>
+
+                <Border
+                    Height="1"
+                    Margin="0,4"
+                    Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock FontWeight="SemiBold" Text="Gỡ cài đặt LumaTranslate" />
+                        <TextBlock
+                            FontSize="12"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text="Dọn dẹp môi trường Python 3.12, mô hình AI cục bộ, dữ liệu cá nhân và tùy chọn xóa thư mục bộ cài."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Button
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        AutomationProperties.AutomationId="UninstallAppButton"
+                        Click="UninstallAppBtn_Click"
+                        Foreground="{ThemeResource SystemFillColorCriticalBrush}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <SymbolIcon Symbol="Delete" />
+                            <TextBlock Text="Gỡ cài đặt phần mềm..." />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>
