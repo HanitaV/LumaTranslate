@@ -102,6 +102,8 @@ impl SupervisedOcrClient {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
+            .kill_on_drop(true)
+            .env("PYTHONUTF8", "1")
             .env("PYTHONIOENCODING", "utf-8")
             .env("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True");
 

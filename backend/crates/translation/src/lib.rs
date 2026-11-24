@@ -39,24 +39,64 @@ pub enum TranslationError {
 }
 
 impl TranslationError {
+    fn short_detail(detail: &str) -> String {
+        let one_line: String = detail
+            .lines()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<_>>()
+            .join(" ");
+        if one_line.chars().count() > 140 {
+            let truncated: String = one_line.chars().take(140).collect();
+            format!("{truncated}...")
+        } else {
+            one_line
+        }
+    }
+
     pub fn user_message_vi(&self) -> String {
         match self {
             Self::ConsentRequired => {
-                "Vui lòng xác nhận đồng ý gửi văn bản OCR lên dịch vụ đám mây trong phần Cài đặt trước khi dịch.".to_string()
+                "Vui lòng xác nhận đồng ý gửi văn bản OCR lên dịch vụ đám mây trước khi dịch.".to_string()
             }
             Self::EmptyInput => "Không có văn bản nguồn để dịch.".to_string(),
             Self::MissingCredentials(p) => {
-                format!("Chưa cấu hình khóa API hợp lệ cho nhà cung cấp {p}.")
+                if p.contains("Azure") {
+                    format!("Chưa cấu hình khóa API hoặc Vùng (Region, ví dụ: southeastasia) hợp lệ cho {p}.")
+                } else {
+                    format!("Chưa cấu hình khóa API hợp lệ cho {p}.")
+                }
             }
-            Self::QuotaExceeded(p, _) => {
-                format!("Đã hết hạn mức hoặc bị giới hạn tốc độ trên {p}. Hãy kiểm tra tài khoản hoặc chuyển nhà cung cấp.")
+            Self::QuotaExceeded(p, detail) => {
+                let extra = Self::short_detail(detail);
+                if p.contains("MyMemory") {
+                    format!(
+                        "Đã chạm giới hạn tốc độ/hạn mức miễn phí trên {p}{}. Hãy điền Email liên hệ MyMemory trong Cài đặt để nâng hạn mức hoặc cấu hình Azure/Google.",
+                        if extra.is_empty() { String::new() } else { format!(" ({extra})") }
+                    )
+                } else {
+                    format!(
+                        "Đã hết hạn mức hoặc bị giới hạn tốc độ trên {p}{}.",
+                        if extra.is_empty() { String::new() } else { format!(" ({extra})") }
+                    )
+                }
             }
             Self::Timeout(p) => format!("Quá thời gian chờ phản hồi từ {p}."),
-            Self::Network(p, _) => {
-                format!("Không thể kết nối tới {p}. Vui lòng kiểm tra kết nối Internet.")
+            Self::Network(p, detail) => {
+                let extra = Self::short_detail(detail);
+                if extra.is_empty() {
+                    format!("Không thể kết nối tới {p}. Vui lòng kiểm tra kết nối Internet.")
+                } else {
+                    format!("Không thể kết nối tới {p}: {extra}")
+                }
             }
-            Self::InvalidResponse(p, _) => {
-                format!("Phản hồi không hợp lệ từ nhà cung cấp {p}.")
+            Self::InvalidResponse(p, detail) => {
+                let extra = Self::short_detail(detail);
+                if extra.is_empty() {
+                    format!("Phản hồi không hợp lệ từ nhà cung cấp {p}.")
+                } else {
+                    format!("Phản hồi lỗi từ {p}: {extra}")
+                }
             }
             Self::Cancelled => "Yêu cầu dịch đã bị hủy.".to_string(),
         }
@@ -101,10 +141,11 @@ impl MyMemoryProvider {
     fn normalize_langpair_source(source_language: Option<&str>) -> &'static str {
         match source_language
             .map(str::trim)
-            .unwrap_or("en")
+            .unwrap_or("auto")
             .to_lowercase()
             .as_str()
         {
+            "en" | "eng" | "english" => "en",
             "ja" | "jp" | "japan" | "japanese" => "ja",
             "zh" | "zh-cn" | "zh-hans" | "ch" | "chinese" => "zh-CN",
             "zh-tw" | "zh-hant" | "chinese_cht" => "zh-TW",
@@ -112,10 +153,12 @@ impl MyMemoryProvider {
             "fr" => "fr",
             "de" => "de",
             "es" => "es",
-            // MyMemory requires an explicit source language code in `langpair`; when `auto` is passed,
-            // infer script from Unicode ranges so CJK/Hangul dialogue works out-of-the-box!
+            "it" => "it",
+            "pt" => "pt",
+            "ru" => "ru",
+            "latin" => "autodetect",
             "auto" | "" => "auto",
-            _ => "en",
+            _ => "autodetect",
         }
     }
 
@@ -123,6 +166,7 @@ impl MyMemoryProvider {
         let mut has_kana = false;
         let mut has_hangul = false;
         let mut has_han = false;
+        let mut has_non_ascii_latin = false;
         for ch in text.chars() {
             let code = ch as u32;
             if (0x3040..=0x30FF).contains(&code) || (0x31F0..=0x31FF).contains(&code) {
@@ -131,6 +175,8 @@ impl MyMemoryProvider {
                 has_hangul = true;
             } else if (0x4E00..=0x9FFF).contains(&code) {
                 has_han = true;
+            } else if (0x00C0..=0x024F).contains(&code) {
+                has_non_ascii_latin = true;
             }
         }
         if has_kana {
@@ -139,6 +185,8 @@ impl MyMemoryProvider {
             "ko"
         } else if has_han {
             "zh-CN"
+        } else if has_non_ascii_latin {
+            "autodetect"
         } else {
             "en"
         }
@@ -146,6 +194,9 @@ impl MyMemoryProvider {
 
     fn chunk_text_respecting_limit(text: &str) -> Vec<String> {
         let trimmed = text.trim();
+        if trimmed.is_empty() {
+            return Vec::new();
+        }
         if trimmed.chars().count() <= MYMEMORY_MAX_QUERY_CHARS && trimmed.len() <= 490 {
             return vec![trimmed.to_string()];
         }
@@ -155,17 +206,24 @@ impl MyMemoryProvider {
             if current.chars().count() + 1 > MYMEMORY_MAX_QUERY_CHARS
                 || current.len() + ch.len_utf8() > 480
             {
-                chunks.push(current.trim().to_string());
+                let part = current.trim();
+                if !part.is_empty() {
+                    chunks.push(part.to_string());
+                }
                 current.clear();
             }
             current.push(ch);
             if matches!(ch, '.' | '!' | '?' | '。' | '！' | '？' | '\n') && current.len() >= 180 {
-                chunks.push(current.trim().to_string());
+                let part = current.trim();
+                if !part.is_empty() {
+                    chunks.push(part.to_string());
+                }
                 current.clear();
             }
         }
-        if !current.trim().is_empty() {
-            chunks.push(current.trim().to_string());
+        let tail = current.trim();
+        if !tail.is_empty() {
+            chunks.push(tail.to_string());
         }
         chunks
     }
@@ -552,6 +610,12 @@ impl TranslationProvider for GoogleCloudProvider {
         }
         if status.as_u16() == 400 || status.as_u16() == 401 {
             let body = resp.text().await.unwrap_or_default();
+            let lower = body.to_lowercase();
+            if status.as_u16() == 401 || lower.contains("api_key_invalid") || lower.contains("keyinvalid") || lower.contains("api key not valid") {
+                return Err(TranslationError::MissingCredentials(
+                    "Google Cloud Translation".into(),
+                ));
+            }
             return Err(TranslationError::InvalidResponse(
                 "Google Cloud Translation".into(),
                 body,

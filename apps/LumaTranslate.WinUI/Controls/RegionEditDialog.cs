@@ -24,7 +24,7 @@ public static class RegionEditDialog
 
         var langCombo = new ComboBox
         {
-            Header = "Ngôn ngữ nguồn",
+            Header = "Ngôn ngữ nguồn cần nhận dạng & dịch sang tiếng Việt",
             HorizontalAlignment = HorizontalAlignment.Stretch,
             ItemsSource = MainViewModel.SupportedLanguages,
         };

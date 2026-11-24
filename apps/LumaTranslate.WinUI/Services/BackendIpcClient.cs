@@ -245,7 +245,7 @@ public sealed class BackendIpcClient : IAsyncDisposable
             }
 
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(20));
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(65));
             return await tcs.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
         }
         finally
@@ -308,6 +308,15 @@ public sealed class BackendIpcClient : IAsyncDisposable
             ["cmd"] = "test_translation",
             ["provider"] = provider,
             ["settings_override"] = settingsOverride,
+        }, ct);
+
+    public Task<IpcServerEnvelope> TestTtsAsync(
+        string? text = null,
+        CancellationToken ct = default) =>
+        SendRequestAsync(new()
+        {
+            ["cmd"] = "test_tts",
+            ["text"] = string.IsNullOrWhiteSpace(text) ? null : text,
         }, ct);
 
     public Task<IpcServerEnvelope> QueryHistoryAsync(

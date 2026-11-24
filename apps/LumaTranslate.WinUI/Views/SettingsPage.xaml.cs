@@ -7,6 +7,8 @@ namespace LumaTranslate_WinUI.Views;
 
 public sealed partial class SettingsPage : Page
 {
+    private bool _loadingForm;
+
     public MainViewModel ViewModel => App.ViewModel;
 
     public SettingsPage()
@@ -19,39 +21,48 @@ public sealed partial class SettingsPage : Page
 
     private void Page_Loaded(object sender, RoutedEventArgs e)
     {
-        AppSettingsDto s = ViewModel.Settings;
+        _loadingForm = true;
+        try
+        {
+            AppSettingsDto s = ViewModel.Settings;
 
-        DefaultLangCombo.SelectedItem = MainViewModel.SupportedLanguages
-            .FirstOrDefault(l => l.Code == ViewModel.DefaultNewRegionLanguage)
-            ?? MainViewModel.SupportedLanguages[1];
+            DefaultLangCombo.SelectedItem = MainViewModel.SupportedLanguages
+                .FirstOrDefault(l => string.Equals(l.Code, ViewModel.DefaultNewRegionLanguage, StringComparison.OrdinalIgnoreCase))
+                ?? MainViewModel.SupportedLanguages[0];
 
-        IntervalNumberBox.Value = s.MonitoringIntervalMs;
-        CloudConsentCheckBox.IsChecked = s.CloudConsentGranted;
+            IntervalNumberBox.Value = s.MonitoringIntervalMs;
+            CloudConsentCheckBox.IsChecked = s.CloudConsentGranted;
 
-        ProviderCombo.SelectedItem = MainViewModel.SupportedProviders
-            .FirstOrDefault(p => p.Id == s.ActiveProvider)
-            ?? MainViewModel.SupportedProviders[0];
+            ProviderCombo.SelectedItem = MainViewModel.SupportedProviders
+                .FirstOrDefault(p => p.Id == s.ActiveProvider)
+                ?? MainViewModel.SupportedProviders[0];
 
-        MyMemoryEmailBox.Text = s.Credentials.MyMemoryEmail ?? string.Empty;
-        AzureKeyBox.Password = s.Credentials.AzureApiKey ?? string.Empty;
-        AzureRegionBox.Text = s.Credentials.AzureRegion ?? string.Empty;
-        GoogleKeyBox.Password = s.Credentials.GoogleApiKey ?? string.Empty;
+            MyMemoryEmailBox.Text = s.Credentials.MyMemoryEmail ?? string.Empty;
+            AzureKeyBox.Password = s.Credentials.AzureApiKey ?? string.Empty;
+            AzureRegionBox.Text = s.Credentials.AzureRegion ?? string.Empty;
+            AzureEndpointBox.Text = s.Credentials.AzureEndpoint ?? string.Empty;
+            GoogleKeyBox.Password = s.Credentials.GoogleApiKey ?? string.Empty;
 
-        FallbackMyMemoryCheck.IsChecked = s.FallbackProviders.Contains("mymemory");
-        FallbackAzureCheck.IsChecked = s.FallbackProviders.Contains("azure");
-        FallbackGoogleCheck.IsChecked = s.FallbackProviders.Contains("google");
+            FallbackMyMemoryCheck.IsChecked = s.FallbackProviders.Contains("mymemory");
+            FallbackAzureCheck.IsChecked = s.FallbackProviders.Contains("azure");
+            FallbackGoogleCheck.IsChecked = s.FallbackProviders.Contains("google");
 
-        TtsAutoSwitch.IsOn = s.TtsEnabled;
-        VolumeSlider.Value = Math.Round(s.TtsVolume * 100.0);
-        TtsModeCombo.SelectedItem = MainViewModel.SupportedTtsModes
-            .FirstOrDefault(m => m.Id == s.TtsExecutionMode)
-            ?? MainViewModel.SupportedTtsModes[0];
+            TtsAutoSwitch.IsOn = s.TtsEnabled;
+            VolumeSlider.Value = Math.Round(s.TtsVolume * 100.0);
+            TtsModeCombo.SelectedItem = MainViewModel.SupportedTtsModes
+                .FirstOrDefault(m => m.Id == s.TtsExecutionMode)
+                ?? MainViewModel.SupportedTtsModes[0];
 
-        OverlayFontSizeBox.Value = s.Overlay.FontSize;
-        OverlayOpacityBox.Value = Math.Round(s.Overlay.Opacity * 100.0);
-        OverlayXBox.Value = s.Overlay.X;
-        OverlayYBox.Value = s.Overlay.Y;
-        ClickThroughSwitch.IsOn = s.Overlay.LockedClickThrough;
+            OverlayFontSizeBox.Value = s.Overlay.FontSize;
+            OverlayOpacityBox.Value = Math.Round(s.Overlay.Opacity * 100.0);
+            OverlayXBox.Value = s.Overlay.X;
+            OverlayYBox.Value = s.Overlay.Y;
+            ClickThroughSwitch.IsOn = s.Overlay.LockedClickThrough;
+        }
+        finally
+        {
+            _loadingForm = false;
+        }
     }
 
     private AppSettingsDto CollectSettingsFromForm()
@@ -77,7 +88,7 @@ public sealed partial class SettingsPage : Page
                 MyMemoryEmail = NullIfBlank(MyMemoryEmailBox.Text),
                 AzureApiKey = NullIfBlank(AzureKeyBox.Password),
                 AzureRegion = NullIfBlank(AzureRegionBox.Text),
-                AzureEndpoint = ViewModel.Settings.Credentials.AzureEndpoint,
+                AzureEndpoint = NullIfBlank(AzureEndpointBox.Text),
                 GoogleApiKey = NullIfBlank(GoogleKeyBox.Password),
             },
             TtsEnabled = TtsAutoSwitch.IsOn,
@@ -102,7 +113,7 @@ public sealed partial class SettingsPage : Page
     private async void TestProviderBtn_Click(object sender, RoutedEventArgs e)
     {
         TestProviderBtn.IsEnabled = false;
-        TestResultText.Text = "Đang kiểm tra kết nối...";
+        TestResultText.Text = "Đang kiểm tra kết nối dịch API...";
         try
         {
             AppSettingsDto draft = CollectSettingsFromForm();
@@ -113,6 +124,38 @@ public sealed partial class SettingsPage : Page
         {
             TestProviderBtn.IsEnabled = true;
         }
+    }
+
+    private async void TestTtsBtn_Click(object sender, RoutedEventArgs e)
+    {
+        TestTtsBtn.IsEnabled = false;
+        TestTtsResultText.Text = "Đang tổng hợp và phát giọng đọc tiếng Việt (lần đầu có thể mất ~20 giây để nạp mô hình)...";
+        try
+        {
+            var (_, msgVi) = await ViewModel.TestTtsPlaybackAsync();
+            TestTtsResultText.Text = msgVi;
+        }
+        finally
+        {
+            TestTtsBtn.IsEnabled = true;
+        }
+    }
+
+    private async void ClickThroughSwitch_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_loadingForm)
+        {
+            return;
+        }
+        await ViewModel.SetOverlayMoveModeAsync(allowMove: !ClickThroughSwitch.IsOn);
+    }
+
+    private async void UnlockOverlayFromSettingsBtn_Click(object sender, RoutedEventArgs e)
+    {
+        _loadingForm = true;
+        ClickThroughSwitch.IsOn = false;
+        _loadingForm = false;
+        await ViewModel.SetOverlayMoveModeAsync(allowMove: true);
     }
 
     private async void SaveSettingsBtn_Click(object sender, RoutedEventArgs e)

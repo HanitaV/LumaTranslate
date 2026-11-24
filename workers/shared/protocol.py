@@ -21,15 +21,22 @@ MAX_BINARY_PAYLOAD_BYTES = 32 * 1024 * 1024  # 32 MiB
 
 
 def reserve_clean_ipc_stdout() -> BinaryIO:
-    """Capture binary stdout buffer for exclusive IPC framing and route Python sys.stdout to stderr."""
-    raw_out = sys.stdout.buffer
+    """Duplicate OS fd 1 for exclusive binary IPC framing and redirect fd 1 + sys.stdout to stderr.
+
+    Redirecting OS file descriptor 1 ensures native C/C++ libraries (PyTorch, ONNX Runtime,
+    Paddle, HuggingFace) writing directly to stdout cannot corrupt binary IPC frames.
+    """
+    raw_fd = sys.stdout.buffer.fileno()
+    ipc_fd = os.dup(raw_fd)
+    stderr_fd = sys.stderr.buffer.fileno()
+    os.dup2(stderr_fd, raw_fd)
     if os.name == "nt":
         import msvcrt
 
-        msvcrt.setmode(raw_out.fileno(), os.O_BINARY)
+        msvcrt.setmode(ipc_fd, os.O_BINARY)
         msvcrt.setmode(sys.stdin.buffer.fileno(), os.O_BINARY)
     sys.stdout = sys.stderr
-    return raw_out
+    return os.fdopen(ipc_fd, "wb", buffering=0)
 
 
 class ProtocolError(RuntimeError):

@@ -650,7 +650,23 @@ impl IpcCommandHandler for PipelineCoordinator {
                 let _ = self.store.save_settings(&settings);
 
                 if settings.tts_execution_mode != prev_tts_mode {
-                    let _ = self.tts.set_execution_mode(settings.tts_execution_mode).await;
+                    let tts_bg = Arc::clone(&self.tts);
+                    let ocr_bg = Arc::clone(&self.ocr);
+                    let ev_tx = self.events_tx.clone();
+                    let new_mode = settings.tts_execution_mode;
+                    tokio::spawn(async move {
+                        if let Err(err) = tts_bg.set_execution_mode(new_mode).await {
+                            let _ = ev_tx.send(IpcServerMessage::PipelineError {
+                                code: "TTS_ERROR".into(),
+                                message_vi: format!("Lỗi khởi động lại thiết bị TTS: {err}"),
+                                detail: Some(err.to_string()),
+                            });
+                        }
+                        let _ = ev_tx.send(IpcServerMessage::WorkerStatus {
+                            ocr_worker: ocr_bg.runtime_state(),
+                            tts_worker: tts_bg.runtime_state(),
+                        });
+                    });
                 }
                 ok_state_response(req_id, self.snapshot())
             }
@@ -710,6 +726,28 @@ impl IpcCommandHandler for PipelineCoordinator {
                         }),
                     },
                     Err(e) => error_response(req_id, e.user_message_vi()),
+                }
+            }
+            IpcRequest::TestTts { text, .. } => {
+                let sample = text
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or("Xin chào! Giọng đọc tiếng Việt LumaTranslate đang hoạt động tốt.");
+                match self.tts.speak_latest(sample).await {
+                    Ok(_) => IpcServerMessage::Response {
+                        request_id: req_id,
+                        ok: true,
+                        error: None,
+                        state: None,
+                        monitors: None,
+                        history: None,
+                        test_translation_result: None,
+                    },
+                    Err(e) => error_response(
+                        req_id,
+                        format!("Không thể phát giọng đọc thử nghiệm: {e}"),
+                    ),
                 }
             }
             IpcRequest::QueryHistory {

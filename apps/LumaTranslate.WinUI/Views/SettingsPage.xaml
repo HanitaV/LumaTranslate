@@ -8,6 +8,31 @@
     <ScrollViewer Padding="24,16,24,32" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="920" Spacing="20">
 
+            <!-- Top Action Bar so users never miss saving -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="Cài đặt dịch thuật, giọng đọc &amp; phụ đề nổi" />
+                    <TextBlock
+                        FontSize="12"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="Nhấn 'Lưu tất cả cài đặt' sau khi thay đổi khóa API hoặc thông số bên dưới" />
+                </StackPanel>
+                <Button
+                    Grid.Column="1"
+                    Click="UnlockOverlayFromSettingsBtn_Click"
+                    Content="✥ Mở khóa kéo chỗ hiện Vietsub" />
+                <Button
+                    Grid.Column="2"
+                    Click="SaveSettingsBtn_Click"
+                    Content="Lưu tất cả cài đặt"
+                    Style="{ThemeResource AccentButtonStyle}" />
+            </Grid>
+
             <!-- OCR Settings -->
             <StackPanel
                 Padding="18"
@@ -20,11 +45,13 @@
                 <TextBlock
                     FontSize="13"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="{x:Bind ViewModel.OcrStatusText, Mode=OneWay}" />
+                    Text="{x:Bind ViewModel.OcrStatusText, Mode=OneWay}"
+                    TextWrapping="Wrap" />
                 <TextBlock
                     FontSize="12"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="{x:Bind ViewModel.GpuSummaryText, Mode=OneWay}" />
+                    Text="{x:Bind ViewModel.GpuSummaryText, Mode=OneWay}"
+                    TextWrapping="Wrap" />
 
                 <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions>
@@ -36,7 +63,7 @@
                         Grid.Column="0"
                         HorizontalAlignment="Stretch"
                         AutomationProperties.AutomationId="DefaultLanguageCombo"
-                        Header="Ngôn ngữ mặc định cho vùng mới" />
+                        Header="Ngôn ngữ gợi ý ban đầu khi tạo vùng mới (bạn vẫn tự chọn lại cho từng vùng)" />
                     <NumberBox
                         x:Name="IntervalNumberBox"
                         Grid.Column="1"
@@ -72,32 +99,45 @@
 
                 <TextBox
                     x:Name="MyMemoryEmailBox"
-                    Header="Email liên hệ MyMemory (Tùy chọn • Tăng hạn mức miễn phí)"
+                    Header="Email liên hệ MyMemory (Khuyến nghị điền nếu dùng MyMemory miễn phí để tăng hạn mức gấp 10 lần)"
                     PlaceholderText="ví dụ: ban@example.com" />
 
-                <Grid ColumnSpacing="12">
+                <Grid ColumnSpacing="12" RowSpacing="10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
                     <PasswordBox
                         x:Name="AzureKeyBox"
+                        Grid.Row="0"
                         Grid.Column="0"
                         AutomationProperties.AutomationId="AzureApiKeyBox"
-                        Header="Khóa API Azure Translator (Hỗ trợ gói F0 miễn phí)"
+                        Header="Khóa API Azure Translator (Hỗ trợ gói F0 2 triệu ký tự/tháng miễn phí)"
                         PlaceholderText="Nhập khóa đăng ký Azure Translator" />
                     <TextBox
                         x:Name="AzureRegionBox"
+                        Grid.Row="0"
                         Grid.Column="1"
                         AutomationProperties.AutomationId="AzureRegionBox"
-                        Header="Vùng Azure (Region)"
+                        Header="Vùng Azure (Region • Bắt buộc với khóa theo vùng)"
                         PlaceholderText="ví dụ: southeastasia" />
+                    <TextBox
+                        x:Name="AzureEndpointBox"
+                        Grid.Row="1"
+                        Grid.ColumnSpan="2"
+                        AutomationProperties.AutomationId="AzureEndpointBox"
+                        Header="Điểm cuối Azure Translator (Để trống dùng mặc định toàn cầu)"
+                        PlaceholderText="https://api.cognitive.microsofttranslator.com" />
                 </Grid>
 
                 <PasswordBox
                     x:Name="GoogleKeyBox"
                     AutomationProperties.AutomationId="GoogleApiKeyBox"
-                    Header="Khóa API Google Cloud Translation (Tùy chọn)"
+                    Header="Khóa API Google Cloud Translation v2 (Tùy chọn)"
                     PlaceholderText="Nhập khóa Google Cloud Translation v2" />
 
                 <StackPanel Orientation="Horizontal" Spacing="16">
@@ -111,9 +151,10 @@
                         x:Name="TestProviderBtn"
                         AutomationProperties.AutomationId="TestProviderButton"
                         Click="TestProviderBtn_Click"
-                        Content="Kiểm tra kết nối" />
+                        Content="Kiểm tra kết nối dịch API" />
                     <TextBlock
                         x:Name="TestResultText"
+                        MaxWidth="640"
                         VerticalAlignment="Center"
                         TextWrapping="Wrap" />
                 </StackPanel>
@@ -131,7 +172,8 @@
                 <TextBlock
                     FontSize="13"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="{x:Bind ViewModel.TtsStatusText, Mode=OneWay}" />
+                    Text="{x:Bind ViewModel.TtsStatusText, Mode=OneWay}"
+                    TextWrapping="Wrap" />
 
                 <ToggleSwitch
                     x:Name="TtsAutoSwitch"
@@ -160,6 +202,19 @@
                         AutomationProperties.AutomationId="TtsModeComboBox"
                         Header="Thiết bị thực thi TTS" />
                 </Grid>
+
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button
+                        x:Name="TestTtsBtn"
+                        AutomationProperties.AutomationId="TestTtsButton"
+                        Click="TestTtsBtn_Click"
+                        Content="Nghe thử giọng đọc tiếng Việt" />
+                    <TextBlock
+                        x:Name="TestTtsResultText"
+                        MaxWidth="640"
+                        VerticalAlignment="Center"
+                        TextWrapping="Wrap" />
+                </StackPanel>
             </StackPanel>
 
             <!-- Overlay Settings -->
@@ -170,7 +225,7 @@
                 BorderThickness="1"
                 CornerRadius="8"
                 Spacing="12">
-                <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="Cửa sổ phụ đề nổi (Overlay)" />
+                <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="Cửa sổ phụ đề nổi (Vietsub Overlay)" />
 
                 <Grid ColumnSpacing="16" RowSpacing="12">
                     <Grid.ColumnDefinitions>
@@ -208,9 +263,10 @@
                 <ToggleSwitch
                     x:Name="ClickThroughSwitch"
                     AutomationProperties.AutomationId="OverlayClickThroughSwitch"
-                    Header="Khóa xuyên chuột (Click-through khi đang chơi game; tắt để kéo đổi vị trí phụ đề)"
-                    OffContent="Đang cho phép kéo phụ đề"
-                    OnContent="Đang xuyên chuột" />
+                    Header="Khóa xuyên chuột (Tắt để kéo di chuyển hoặc đổi cỡ khung Vietsub trên màn hình)"
+                    OffContent="Đang cho phép kéo khung Vietsub"
+                    OnContent="Đang khóa xuyên chuột"
+                    Toggled="ClickThroughSwitch_Toggled" />
             </StackPanel>
 
             <!-- Data & Save Actions -->

@@ -50,6 +50,10 @@ pub enum IpcRequest {
         provider: Option<TranslationProviderKind>,
         settings_override: Option<AppSettings>,
     },
+    TestTts {
+        request_id: u64,
+        text: Option<String>,
+    },
     QueryHistory {
         request_id: u64,
         search_query: Option<String>,
@@ -80,6 +84,7 @@ impl IpcRequest {
             | Self::UpdateSettings { request_id, .. }
             | Self::RegisterOverlayWindow { request_id, .. }
             | Self::TestTranslation { request_id, .. }
+            | Self::TestTts { request_id, .. }
             | Self::QueryHistory { request_id, .. }
             | Self::ClearHistory { request_id }
             | Self::ClearCache { request_id }

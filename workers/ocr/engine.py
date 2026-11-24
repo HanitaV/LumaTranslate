@@ -66,6 +66,84 @@ def inspect_nvml_gpu(device_index: int = 0) -> GpuSnapshot:
         return GpuSnapshot(False, None, None, 0, 0, 0, None)
 
 
+def _is_cjk_char(ch: str) -> bool:
+    code = ord(ch)
+    return (
+        0x3000 <= code <= 0x30FF  # CJK symbols, Hiragana, Katakana
+        or 0x31F0 <= code <= 0x31FF  # Katakana phonetic extensions
+        or 0x3400 <= code <= 0x4DBF  # CJK Ext A
+        or 0x4E00 <= code <= 0x9FFF  # CJK Unified Ideographs
+        or 0xF900 <= code <= 0xFAFF  # CJK Compatibility Ideographs
+        or 0xFF00 <= code <= 0xFFEF  # Fullwidth forms
+    )
+
+
+def _join_subtitle_tokens(left: str, right: str) -> str:
+    left_s = left.rstrip()
+    right_s = right.lstrip()
+    if not left_s:
+        return right_s
+    if not right_s:
+        return left_s
+    if _is_cjk_char(left_s[-1]) and _is_cjk_char(right_s[0]):
+        return f"{left_s}{right_s}"
+    return f"{left_s} {right_s}"
+
+
+def merge_subtitle_polygons(
+    boxes: list[tuple[float, float, float, float, str, float]],
+) -> tuple[str, float]:
+    """Merge detected word/line boxes (cy, min_x, max_x, box_h, text, score) into clean subtitle text.
+
+    Groups word polygons on the same visual line left-to-right with proper spacing, and joins
+    wrapped subtitle lines into coherent sentences so cloud translation and TTS preserve context.
+    """
+    if not boxes:
+        return "", 0.0
+
+    sorted_by_y = sorted(boxes, key=lambda b: b[0])
+    rows: list[list[tuple[float, float, float, float, str, float]]] = []
+    for item in sorted_by_y:
+        cy, _, _, box_h, _, _ = item
+        placed = False
+        for row in rows:
+            row_cy = sum(r[0] for r in row) / len(row)
+            row_h = sum(r[3] for r in row) / len(row)
+            threshold = max(14.0, 0.60 * max(box_h, row_h))
+            if abs(cy - row_cy) <= threshold:
+                row.append(item)
+                placed = True
+                break
+        if not placed:
+            rows.append([item])
+
+    row_entries: list[tuple[float, float, str]] = []
+    for row in rows:
+        row.sort(key=lambda b: b[1])
+        row_cy = sum(r[0] for r in row) / len(row)
+        row_h = max(sum(r[3] for r in row) / len(row), 12.0)
+        merged_line = ""
+        for token in row:
+            merged_line = _join_subtitle_tokens(merged_line, token[4])
+        if merged_line:
+            row_entries.append((row_cy, row_h, merged_line))
+
+    if not row_entries:
+        return "", 0.0
+
+    combined = row_entries[0][2]
+    prev_cy, prev_h, _ = row_entries[0]
+    for cur_cy, cur_h, cur_text in row_entries[1:]:
+        avg_h = 0.5 * (prev_h + cur_h)
+        vertical_gap = cur_cy - prev_cy
+        if vertical_gap > 2.4 * avg_h:
+            combined = f"{combined}\n{cur_text}"
+        else:
+            combined = _join_subtitle_tokens(combined, cur_text)
+        prev_cy, prev_h = cur_cy, cur_h
+
+    avg_conf = round(sum(b[5] for b in boxes) / len(boxes), 4)
+    return combined.strip(), avg_conf
 def map_language_to_rec_model(source_language: str | None) -> tuple[str, str]:
     """Map requested source language code to the validated PP-OCRv5 Mobile recognition model.
 
@@ -329,7 +407,7 @@ class PaddleOcrEngine:
             else:
                 raise
 
-        lines: list[tuple[float, float, str, float]] = []
+        boxes: list[tuple[float, float, float, float, str, float]] = []
         for item in raw_results:
             data = item["res"] if isinstance(item, dict) and "res" in item else item
             texts = data["rec_texts"] if "rec_texts" in data else []
@@ -344,18 +422,17 @@ class PaddleOcrEngine:
                 if idx < len(polys) and len(polys[idx]) > 0:
                     pts = np.asarray(polys[idx], dtype=np.float32)
                     cy = float(np.mean(pts[:, 1]))
-                    cx = float(np.mean(pts[:, 0]))
+                    min_x = float(np.min(pts[:, 0]))
+                    max_x = float(np.max(pts[:, 0]))
+                    box_h = max(float(np.max(pts[:, 1]) - np.min(pts[:, 1])), 10.0)
                 else:
-                    cy = float(idx * 20)
-                    cx = 0.0
-                lines.append((cy, cx, cleaned, score))
+                    cy = float(idx * 24)
+                    min_x = 0.0
+                    max_x = float(len(cleaned) * 12)
+                    box_h = 20.0
+                boxes.append((cy, min_x, max_x, box_h, cleaned, score))
 
-        # Sort lines top-to-bottom (grouping nearby Y lines within 12px left-to-right)
-        lines.sort(key=lambda entry: (round(entry[0] / 12.0), entry[1]))
-        combined_text = "\n".join(entry[2] for entry in lines).strip()
-        avg_conf = (
-            round(sum(entry[3] for entry in lines) / len(lines), 4) if lines else 0.0
-        )
+        combined_text, avg_conf = merge_subtitle_polygons(boxes)
         latency_ms = int(round((time.perf_counter() - t0) * 1000.0))
 
         return {

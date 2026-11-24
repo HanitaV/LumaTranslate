@@ -83,6 +83,17 @@ internal static partial class Win32WindowInterop
     public const uint WM_NCLBUTTONDOWN = 0x00A1;
     public const nint HTCAPTION = 2;
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetCursorPos(out POINT lpPoint);
+
     public static bool TryExcludeFromCapture(nint hwnd)
     {
         if (hwnd == 0)
@@ -105,14 +116,14 @@ internal static partial class Win32WindowInterop
         SetWindowLongPtr(hwnd, GWL_STYLE, style);
 
         nint exStyle = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
-        exStyle |= WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED;
+        exStyle |= WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED;
         if (clickThrough)
         {
-            exStyle |= WS_EX_TRANSPARENT;
+            exStyle |= WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
         }
         else
         {
-            exStyle &= ~WS_EX_TRANSPARENT;
+            exStyle &= ~(WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
         }
         SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle);
 

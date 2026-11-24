@@ -26,7 +26,10 @@ public sealed partial class MainWindow : Window
         {
             AppWindow.SetIcon(iconPath);
         }
-        AppWindow.Resize(new SizeInt32(980, 740));
+        var (_, _, vw, vh) = Win32WindowInterop.GetVirtualScreenBounds();
+        int initW = Math.Min(1100, Math.Max(vw - 80, 860));
+        int initH = Math.Min(780, Math.Max(vh - 80, 640));
+        AppWindow.Resize(new SizeInt32(initW, initH));
 
         Closed += MainWindow_Closed;
     }
@@ -70,6 +73,11 @@ public sealed partial class MainWindow : Window
             {
                 App.ViewModel.UpdateOverlayBoundsFromUser(x, y, w, h);
                 ScheduleDebouncedOverlayRegistration();
+            };
+
+            _overlayWindow.LockRequestedByUser += () =>
+            {
+                _ = App.ViewModel.SetOverlayMoveModeAsync(allowMove: false);
             };
 
             App.ViewModel.SubtitleChangedForOverlay += sub =>

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using LumaTranslate_WinUI.Services;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
 
 namespace LumaTranslate_WinUI.ViewModels;
 
@@ -46,8 +47,14 @@ public sealed class RegionItemViewModel : INotifyPropertyChanged
         }
     }
 
+    public string SourceLanguage => _dto.SourceLanguage;
+    public IReadOnlyList<LanguageOption> AvailableLanguages => MainViewModel.SupportedLanguages;
+    public LanguageOption SelectedLanguageOption =>
+        MainViewModel.SupportedLanguages.FirstOrDefault(
+            l => string.Equals(l.Code, _dto.SourceLanguage, StringComparison.OrdinalIgnoreCase))
+        ?? MainViewModel.SupportedLanguages[0];
     public string LanguageDisplay => MainViewModel.FormatLanguageVi(_dto.SourceLanguage);
-    public string GeometrySummary => $"{_dto.Width}×{_dto.Height} tại ({_dto.X}, {_dto.Y})";
+    public string GeometrySummary => $"Tọa độ ({_dto.X}, {_dto.Y}) • Kích thước {_dto.Width}×{_dto.Height} px";
 
     public void UpdateFrom(CaptureRegionDto updated)
     {
@@ -86,13 +93,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
 {
     public static IReadOnlyList<LanguageOption> SupportedLanguages { get; } =
     [
-        new("auto", "Tự động (Nhật / Anh / Trung)"),
-        new("ja", "Tiếng Nhật (Japanese)"),
+        new("auto", "Tự động nhận diện (Anh / Nhật / Trung / Hàn)"),
         new("en", "Tiếng Anh (English)"),
+        new("ja", "Tiếng Nhật (Japanese)"),
         new("zh", "Tiếng Trung giản thể"),
         new("zh-Hant", "Tiếng Trung phồn thể"),
         new("ko", "Tiếng Hàn (Korean)"),
-        new("latin", "Hệ chữ Latinh (Pháp / Đức / TBN)"),
+        new("latin", "Hệ chữ Latinh (Pháp / Đức / TBN / BĐN)"),
     ];
 
     public static IReadOnlyList<ProviderOption> SupportedProviders { get; } =
@@ -129,10 +136,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string? _bannerMessage;
     private bool _bannerIsError;
     private bool _overlayVisible = true;
-    private string _defaultNewRegionLanguage = "ja";
+    private string _defaultNewRegionLanguage = "auto";
 
     public ObservableCollection<RegionItemViewModel> Regions { get; } = [];
     public ObservableCollection<HistoryItemViewModel> HistoryItems { get; } = [];
+
+    public MainViewModel()
+    {
+        Regions.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(EmptyRegionsVisibility));
+            OnPropertyChanged(nameof(RegionsListVisibility));
+        };
+    }
 
     public event Action<SubtitleEventDto>? SubtitleChangedForOverlay;
     public event Action<OverlaySettingsDto>? OverlaySettingsChanged;
@@ -211,6 +227,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     public bool NeedsCloudConsent => !_settings.CloudConsentGranted;
+    public Visibility EmptyRegionsVisibility => Regions.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility RegionsListVisibility => Regions.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public bool IsOverlayMoveMode => !_settings.Overlay.LockedClickThrough;
+    public string MoveOverlayButtonText => IsOverlayMoveMode ? "✓ Khóa vị trí Vietsub" : "✥ Di chuyển Vietsub";
+    public bool IsTtsEnabled => _settings.TtsEnabled;
 
     public bool OverlayVisible
     {
@@ -304,6 +325,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _settings = snap.Settings;
         OnPropertyChanged(nameof(NeedsCloudConsent));
         OnPropertyChanged(nameof(Settings));
+        OnPropertyChanged(nameof(IsOverlayMoveMode));
+        OnPropertyChanged(nameof(MoveOverlayButtonText));
+        OnPropertyChanged(nameof(IsTtsEnabled));
 
         // Sync region collection preserving UI selection where possible
         var incomingById = snap.Regions.ToDictionary(r => r.Id);
@@ -366,15 +390,25 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void ApplyWorkerStates(WorkerRuntimeStateDto ocr, WorkerRuntimeStateDto tts)
     {
-        string ocrDev = ocr.ExecutionDevice.ToUpperInvariant();
-        OcrStatusText = ocr.FallbackReason is null
-            ? $"PP-OCRv5 Mobile ({ocrDev})"
-            : $"PP-OCRv5 Mobile ({ocrDev} • Dự phòng: {ocr.FallbackReason})";
+        OcrStatusText = FormatWorkerStateVi("PP-OCRv5 Mobile", ocr);
+        TtsStatusText = FormatWorkerStateVi("VieNeu-TTS v3 Turbo", tts);
+    }
 
-        string ttsDev = tts.ExecutionDevice.ToUpperInvariant();
-        TtsStatusText = tts.FallbackReason is null
-            ? $"VieNeu-TTS v3 Turbo ({ttsDev})"
-            : $"VieNeu-TTS v3 Turbo ({ttsDev} • Dự phòng: {tts.FallbackReason})";
+    private static string FormatWorkerStateVi(string modelTitle, WorkerRuntimeStateDto state)
+    {
+        if (!string.IsNullOrWhiteSpace(state.LastError))
+        {
+            return $"{modelTitle} (Lỗi: {state.LastError})";
+        }
+        string devLower = (state.ExecutionDevice ?? "initializing").Trim().ToLowerInvariant();
+        if (!state.Ready || devLower == "initializing")
+        {
+            return $"{modelTitle} (Đang nạp mô hình AI...)";
+        }
+        string devUpper = devLower.ToUpperInvariant();
+        return state.FallbackReason is null
+            ? $"{modelTitle} ({devUpper} • Sẵn sàng)"
+            : $"{modelTitle} ({devUpper} • Dự phòng: {state.FallbackReason})";
     }
 
     private void ApplySubtitleUpdate(SubtitleEventDto sub, bool notifyOverlay = true)
@@ -469,6 +503,77 @@ public sealed class MainViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             ShowBanner($"Lỗi bật/tắt vùng: {ex.Message}", isError: true);
+        }
+    }
+
+    public async Task SetRegionLanguageAsync(string regionId, string languageCode)
+    {
+        RegionItemViewModel? existing = Regions.FirstOrDefault(r => r.Id == regionId);
+        if (existing is null || string.Equals(existing.SourceLanguage, languageCode, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+        CaptureRegionDto src = existing.Dto;
+        var updated = new CaptureRegionDto
+        {
+            Id = src.Id,
+            Name = src.Name,
+            MonitorId = src.MonitorId,
+            X = src.X,
+            Y = src.Y,
+            Width = src.Width,
+            Height = src.Height,
+            DpiScale = src.DpiScale,
+            SourceLanguage = languageCode,
+            Enabled = src.Enabled,
+        };
+        DefaultNewRegionLanguage = languageCode;
+        await AddOrUpdateRegionAsync(updated);
+    }
+
+    public async Task SetOverlayMoveModeAsync(bool allowMove)
+    {
+        _settings.Overlay.LockedClickThrough = !allowMove;
+        if (allowMove)
+        {
+            App.MainWindowInstance?.SetSubtitleOverlayVisibility(true);
+        }
+        _lastAppliedOverlaySettings = _settings.Overlay.Clone();
+        OnPropertyChanged(nameof(IsOverlayMoveMode));
+        OnPropertyChanged(nameof(MoveOverlayButtonText));
+        OverlaySettingsChanged?.Invoke(_settings.Overlay.Clone());
+
+        string notice = allowMove
+            ? "Đã mở khóa khung Vietsub: hãy giữ chuột kéo khung trên màn hình hoặc kéo góc ↘ để đổi kích thước, sau đó nhấn '✓ Khóa vị trí'."
+            : "Đã khóa cố định vị trí khung Vietsub (chế độ xuyên chuột).";
+        await SaveSettingsAsync(_settings, notice);
+    }
+
+    public async Task SetTtsEnabledQuickAsync(bool enabled)
+    {
+        if (_settings.TtsEnabled == enabled)
+        {
+            return;
+        }
+        _settings.TtsEnabled = enabled;
+        OnPropertyChanged(nameof(IsTtsEnabled));
+        await SaveSettingsAsync(_settings);
+    }
+
+    public async Task<(bool Ok, string MessageVi)> TestTtsPlaybackAsync(string? sampleText = null)
+    {
+        try
+        {
+            IpcServerEnvelope resp = await _ipcClient.TestTtsAsync(sampleText);
+            if (resp.Ok == true)
+            {
+                return (true, "Đang phát giọng đọc tiếng Việt thử nghiệm qua loa/tai nghe mặc định.");
+            }
+            return (false, resp.Error ?? "Không thể phát giọng đọc thử nghiệm.");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Lỗi kiểm tra TTS: {ex.Message}");
         }
     }
 

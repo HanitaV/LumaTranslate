@@ -5,11 +5,20 @@ from __future__ import annotations
 import gc
 import inspect
 import os
+import re
 import threading
 import time
 from typing import Any, Iterator
 
 import numpy as np
+
+
+def sanitize_tts_text(raw: str) -> str:
+    """Normalize whitespace/newlines and strip OCR box noise so VieNeu-TTS speaks smoothly."""
+    cleaned = re.sub(r"[\r\n\t]+", " ", raw)
+    cleaned = re.sub(r"[□■▪▫▬▭▮▯]+", " ", cleaned)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+    return cleaned
 
 
 def inspect_nvml_vram(device_index: int = 0) -> tuple[bool, str | None, int, int, int]:
@@ -222,7 +231,7 @@ class VieNeuTtsEngine:
         if self._tts is None:
             raise RuntimeError("TTS engine is not initialized")
 
-        cleaned = text.strip()
+        cleaned = sanitize_tts_text(text)
         if not cleaned:
             return
 

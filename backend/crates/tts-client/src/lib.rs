@@ -15,7 +15,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use thiserror::Error;
 use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::process::{ChildStdin, Command};
+use tokio::process::{Child, ChildStdin, Command};
 use tokio::sync::{mpsc, Mutex};
 
 #[derive(Debug, Error)]
@@ -62,6 +62,7 @@ pub struct SupervisedTtsClient {
     config: RwLock<TtsWorkerConfig>,
     audio: Arc<AudioPlayer>,
     stdin_tx: Mutex<Option<ChildStdin>>,
+    child_proc: Arc<Mutex<Option<Child>>>,
     state: Arc<RwLock<WorkerRuntimeState>>,
     latest_utterance_id: Arc<AtomicU64>,
     next_request_id: AtomicU64,
@@ -79,6 +80,7 @@ impl SupervisedTtsClient {
             config: RwLock::new(config),
             audio,
             stdin_tx: Mutex::new(None),
+            child_proc: Arc::new(Mutex::new(None)),
             state: Arc::new(RwLock::new(WorkerRuntimeState::default())),
             latest_utterance_id: Arc::new(AtomicU64::new(0)),
             next_request_id: AtomicU64::new(1),
@@ -89,7 +91,17 @@ impl SupervisedTtsClient {
 
     pub async fn initialize(&self) -> Result<(), TtsClientError> {
         let mut stdin_guard = self.stdin_tx.lock().await;
+        if stdin_guard.is_some() && self.state.read().ready {
+            return Ok(());
+        }
         self.spawn_worker_locked(&mut stdin_guard, false).await
+    }
+
+    async fn kill_existing_child(&self) {
+        if let Some(mut old_child) = self.child_proc.lock().await.take() {
+            let _ = old_child.kill().await;
+            let _ = old_child.wait().await;
+        }
     }
 
     async fn spawn_worker_locked(
@@ -97,6 +109,9 @@ impl SupervisedTtsClient {
         stdin_slot: &mut Option<ChildStdin>,
         is_restart: bool,
     ) -> Result<(), TtsClientError> {
+        *stdin_slot = None;
+        self.kill_existing_child().await;
+
         let cfg = self.config.read().clone();
         let mut cmd = Command::new(&cfg.python_exe);
         cmd.arg("-u")
@@ -104,6 +119,8 @@ impl SupervisedTtsClient {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
+            .kill_on_drop(true)
+            .env("PYTHONUTF8", "1")
             .env("PYTHONIOENCODING", "utf-8")
             .env("HF_HUB_DISABLE_SYMLINKS_WARNING", "1");
 
@@ -188,6 +205,8 @@ impl SupervisedTtsClient {
             st.last_error = None;
         }
 
+        *self.child_proc.lock().await = Some(child);
+
         // Spawn asynchronous stdout reader streaming chunks directly to AudioPlayer
         let audio = Arc::clone(&self.audio);
         let state = Arc::clone(&self.state);
@@ -269,19 +288,21 @@ impl SupervisedTtsClient {
                                     if let Some(err_str) =
                                         header.get("error").and_then(|v| v.as_str())
                                     {
+                                        tracing::error!("TTS synthesis worker error: {err_str}");
                                         state.write().last_error = Some(err_str.to_string());
                                     }
                                 }
                             }
                         }
                     }
-                    Err(_) => {
-                        state.write().ready = false;
+                    Err(err) => {
+                        tracing::warn!("TTS worker stdout closed/broken: {err}");
+                        let mut st = state.write();
+                        st.ready = false;
                         break;
                     }
                 }
             }
-            let _ = child.wait().await;
         });
 
         *stdin_slot = Some(stdin);
@@ -390,6 +411,7 @@ impl SpeechSynthesizer for SupervisedTtsClient {
             });
             let _ = write_worker_frame(&mut stdin, &req, &[]).await;
         }
+        self.kill_existing_child().await;
         self.audio.shutdown();
         self.state.write().ready = false;
     }

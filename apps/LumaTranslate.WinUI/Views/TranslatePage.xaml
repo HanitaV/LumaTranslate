@@ -5,54 +5,87 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:LumaTranslate_WinUI.ViewModels">
 
-    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
-        <StackPanel MaxWidth="1060" Spacing="16">
+    <ScrollViewer Padding="24,14,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1080" Spacing="14">
 
-            <CommandBar
-                HorizontalAlignment="Left"
-                Background="Transparent"
-                DefaultLabelPosition="Right"
-                OverflowButtonVisibility="Collapsed">
-                <AppBarButton
-                    x:Name="SelectRegionBtn"
-                    AutomationProperties.AutomationId="SelectRegionButton"
-                    Click="SelectRegionBtn_Click"
-                    Label="Chọn vùng">
-                    <AppBarButton.Icon>
-                        <SymbolIcon Symbol="Crop" />
-                    </AppBarButton.Icon>
-                </AppBarButton>
-                <AppBarButton
-                    x:Name="AddManualRegionBtn"
-                    AutomationProperties.AutomationId="AddRegionButton"
-                    Click="AddManualRegionBtn_Click"
-                    Label="Thêm vùng">
-                    <AppBarButton.Icon>
-                        <SymbolIcon Symbol="Add" />
-                    </AppBarButton.Icon>
-                </AppBarButton>
-                <AppBarSeparator />
-                <AppBarButton
-                    x:Name="StartStopBtn"
-                    AutomationProperties.AutomationId="ToggleMonitoringButton"
-                    Click="StartStopBtn_Click"
-                    Label="{x:Bind ViewModel.StartStopButtonText, Mode=OneWay}">
-                    <AppBarButton.Icon>
-                        <SymbolIcon Symbol="Play" />
-                    </AppBarButton.Icon>
-                </AppBarButton>
-                <AppBarToggleButton
-                    x:Name="ShowOverlayToggle"
-                    AutomationProperties.AutomationId="OverlayToggleButton"
-                    Checked="ShowOverlayToggle_Toggled"
-                    IsChecked="{x:Bind ViewModel.OverlayVisible, Mode=TwoWay}"
-                    Label="Phụ đề nổi"
-                    Unchecked="ShowOverlayToggle_Toggled">
-                    <AppBarToggleButton.Icon>
-                        <SymbolIcon Symbol="Caption" />
-                    </AppBarToggleButton.Icon>
-                </AppBarToggleButton>
-            </CommandBar>
+            <!-- Always-visible Primary & Vietsub Toolbar (never hidden behind '...' at 150% DPI) -->
+            <Grid
+                Padding="12,8"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                    <Button
+                        x:Name="SelectRegionBtn"
+                        AutomationProperties.AutomationId="SelectRegionButton"
+                        Click="SelectRegionBtn_Click"
+                        ToolTipService.ToolTip="Kéo chuột chọn khu vực phụ đề trên màn hình rồi tự chọn ngôn ngữ cần dịch">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <SymbolIcon Symbol="Crop" />
+                            <TextBlock Text="Chọn vùng đọc" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button
+                        x:Name="AddManualRegionBtn"
+                        AutomationProperties.AutomationId="AddRegionButton"
+                        Click="AddManualRegionBtn_Click"
+                        ToolTipService.ToolTip="Nhập tọa độ vùng đọc và chọn ngôn ngữ bằng hộp thoại">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <SymbolIcon Symbol="Add" />
+                            <TextBlock Text="Thêm tọa độ" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button
+                        x:Name="StartStopBtn"
+                        AutomationProperties.AutomationId="ToggleMonitoringButton"
+                        Click="StartStopBtn_Click"
+                        Content="{x:Bind ViewModel.StartStopButtonText, Mode=OneWay}"
+                        Style="{ThemeResource AccentButtonStyle}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+                    <ToggleButton
+                        x:Name="ShowOverlayToggle"
+                        AutomationProperties.AutomationId="OverlayToggleButton"
+                        Click="ShowOverlayToggle_Click"
+                        IsChecked="{x:Bind ViewModel.OverlayVisible, Mode=TwoWay}"
+                        ToolTipService.ToolTip="Hiện hoặc ẩn cửa sổ Vietsub nổi trên màn hình">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <SymbolIcon Symbol="Caption" />
+                            <TextBlock Text="Hiện khung Vietsub" />
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <ToggleButton
+                        x:Name="MoveOverlayToggle"
+                        AutomationProperties.AutomationId="MoveOverlayToggleButton"
+                        Click="MoveOverlayToggle_Click"
+                        Content="{x:Bind ViewModel.MoveOverlayButtonText, Mode=OneWay}"
+                        IsChecked="{x:Bind ViewModel.IsOverlayMoveMode, Mode=OneWay}"
+                        ToolTipService.ToolTip="Mở khóa để giữ chuột kéo đổi vị trí hoặc kéo góc đổi kích thước khung Vietsub" />
+
+                    <ToggleButton
+                        x:Name="QuickTtsToggle"
+                        AutomationProperties.AutomationId="QuickTtsToggleButton"
+                        Click="QuickTtsToggle_Click"
+                        IsChecked="{x:Bind ViewModel.IsTtsEnabled, Mode=OneWay}"
+                        ToolTipService.ToolTip="Bật hoặc tắt tự động đọc giọng nói tiếng Việt (VieNeu-TTS)">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <SymbolIcon Symbol="Volume" />
+                            <TextBlock Text="Đọc giọng nói (TTS)" />
+                        </StackPanel>
+                    </ToggleButton>
+                </StackPanel>
+            </Grid>
 
             <InfoBar
                 Title="Xác nhận quyền riêng tư dịch đám mây"
@@ -75,63 +108,145 @@
                 IsClosable="True"
                 IsOpen="{x:Bind ViewModel.HasBanner, Mode=OneWay}"
                 Message="{x:Bind ViewModel.BannerMessage, Mode=OneWay}"
-                Severity="Warning" />
+                Severity="Informational" />
 
             <!-- Monitored Regions Section -->
             <StackPanel Spacing="8">
                 <TextBlock
                     Style="{ThemeResource SubtitleTextBlockStyle}"
-                    Text="Vùng đang theo dõi" />
+                    Text="Các khu vực màn hình sẽ đọc để dịch" />
+
+                <!-- Empty State Guidance -->
+                <StackPanel
+                    Padding="20"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Spacing="10"
+                    Visibility="{x:Bind ViewModel.EmptyRegionsVisibility, Mode=OneWay}">
+                    <TextBlock
+                        FontWeight="SemiBold"
+                        Text="Chưa có khu vực đọc phụ đề nào" />
+                    <TextBlock
+                        FontSize="13"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="1. Nhấn 'Chọn vùng đọc' để kéo khung bao quanh vùng chữ trên màn hình và tự chọn ngôn ngữ nguồn.&#x0a;2. Nhấn '✥ Di chuyển Vietsub' ở thanh công cụ phía trên để kéo khung hiển thị Vietsub tới vị trí mong muốn."
+                        TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button
+                            Click="SelectRegionBtn_Click"
+                            Content="Chọn vùng đọc trên màn hình"
+                            Style="{ThemeResource AccentButtonStyle}" />
+                        <Button
+                            Click="MoveOverlayQuickBtn_Click"
+                            Content="✥ Mở khóa di chuyển chỗ hiện Vietsub" />
+                    </StackPanel>
+                </StackPanel>
 
                 <ListView
                     x:Name="RegionsListView"
                     AutomationProperties.AutomationId="MonitoredRegionsList"
                     ItemsSource="{x:Bind ViewModel.Regions, Mode=OneWay}"
-                    SelectionMode="None">
+                    SelectionMode="None"
+                    Visibility="{x:Bind ViewModel.RegionsListVisibility, Mode=OneWay}">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Padding" Value="0,4" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="vm:RegionItemViewModel">
-                            <Grid Padding="8,10" ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                            <Grid
+                                Padding="14,12"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                RowSpacing="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
 
-                                <CheckBox
-                                    Grid.Column="0"
-                                    MinWidth="0"
-                                    VerticalAlignment="Center"
-                                    Click="RegionEnabledCheckBox_Click"
-                                    IsChecked="{x:Bind Enabled, Mode=OneWay}"
-                                    Tag="{x:Bind Id}" />
+                                <!-- Row 0: Enable toggle + Region Title & Coordinates + Action Buttons -->
+                                <Grid Grid.Row="0" ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
 
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                    <TextBlock FontWeight="SemiBold" Text="{x:Bind Name, Mode=OneWay}" />
+                                    <CheckBox
+                                        Grid.Column="0"
+                                        MinWidth="0"
+                                        VerticalAlignment="Center"
+                                        Click="RegionEnabledCheckBox_Click"
+                                        Content="Bật đọc"
+                                        IsChecked="{x:Bind Enabled, Mode=OneWay}"
+                                        Tag="{x:Bind Id}"
+                                        ToolTipService.ToolTip="Bật hoặc tạm dừng đọc OCR khu vực này" />
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock
+                                            FontSize="15"
+                                            FontWeight="SemiBold"
+                                            Text="{x:Bind Name, Mode=OneWay}" />
+                                        <TextBlock
+                                            FontSize="12"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Text="{x:Bind GeometrySummary, Mode=OneWay}"
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <Button
+                                        Grid.Column="2"
+                                        VerticalAlignment="Center"
+                                        Click="RepickRegionBtn_Click"
+                                        Content="Kéo lại vùng"
+                                        Tag="{x:Bind Id}"
+                                        ToolTipService.ToolTip="Kéo chọn lại khung màn hình cho vùng này" />
+
+                                    <Button
+                                        Grid.Column="3"
+                                        VerticalAlignment="Center"
+                                        Click="EditRegionBtn_Click"
+                                        Content="Sửa chi tiết"
+                                        Tag="{x:Bind Id}"
+                                        ToolTipService.ToolTip="Đổi tên vùng hoặc nhập tọa độ X, Y, Rộng, Cao chính xác" />
+
+                                    <Button
+                                        Grid.Column="4"
+                                        VerticalAlignment="Center"
+                                        Click="DeleteRegionBtn_Click"
+                                        Content="Xóa"
+                                        Tag="{x:Bind Id}" />
+                                </Grid>
+
+                                <!-- Row 1: Prominent Per-Region Source Language Selector -->
+                                <Grid Grid.Row="1" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock
-                                        FontSize="12"
+                                        Grid.Column="0"
+                                        VerticalAlignment="Center"
+                                        FontSize="13"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Text="{x:Bind GeometrySummary, Mode=OneWay}" />
-                                </StackPanel>
-
-                                <TextBlock
-                                    Grid.Column="2"
-                                    VerticalAlignment="Center"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                    Text="{x:Bind LanguageDisplay, Mode=OneWay}" />
-
-                                <Button
-                                    Grid.Column="3"
-                                    Click="EditRegionBtn_Click"
-                                    Content="Sửa"
-                                    Tag="{x:Bind Id}" />
-
-                                <Button
-                                    Grid.Column="4"
-                                    Click="DeleteRegionBtn_Click"
-                                    Content="Xóa"
-                                    Tag="{x:Bind Id}" />
+                                        Text="Ngôn ngữ đọc ở vùng này:" />
+                                    <ComboBox
+                                        Grid.Column="1"
+                                        HorizontalAlignment="Stretch"
+                                        ItemsSource="{x:Bind AvailableLanguages}"
+                                        SelectedItem="{x:Bind SelectedLanguageOption, Mode=OneWay}"
+                                        SelectionChanged="RegionLanguageCombo_SelectionChanged"
+                                        Tag="{x:Bind Id}"
+                                        ToolTipService.ToolTip="Tự chọn ngôn ngữ gốc của chữ trong vùng màn hình này" />
+                                </Grid>
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
@@ -175,7 +290,7 @@
                     <TextBlock
                         FontSize="12"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Text="Tiếng Việt" />
+                        Text="Bản dịch Tiếng Việt (Vietsub)" />
                     <TextBlock
                         AutomationProperties.AutomationId="CurrentVietnameseTextBlock"
                         FontSize="20"
@@ -213,22 +328,38 @@
 
                 <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
                     <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Nhận dạng OCR" />
-                    <TextBlock AutomationProperties.AutomationId="OcrDeviceTextBlock" FontWeight="SemiBold" Text="{x:Bind ViewModel.OcrStatusText, Mode=OneWay}" />
+                    <TextBlock
+                        AutomationProperties.AutomationId="OcrDeviceTextBlock"
+                        FontWeight="SemiBold"
+                        Text="{x:Bind ViewModel.OcrStatusText, Mode=OneWay}"
+                        TextWrapping="Wrap" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="0" Grid.Column="1" Spacing="2">
                     <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Dịch trực tuyến" />
-                    <TextBlock AutomationProperties.AutomationId="ProviderStatusTextBlock" FontWeight="SemiBold" Text="{x:Bind ViewModel.ProviderStatusText, Mode=OneWay}" />
+                    <TextBlock
+                        AutomationProperties.AutomationId="ProviderStatusTextBlock"
+                        FontWeight="SemiBold"
+                        Text="{x:Bind ViewModel.ProviderStatusText, Mode=OneWay}"
+                        TextWrapping="Wrap" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2">
                     <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Giọng đọc tiếng Việt (TTS)" />
-                    <TextBlock AutomationProperties.AutomationId="TtsDeviceTextBlock" FontWeight="SemiBold" Text="{x:Bind ViewModel.TtsStatusText, Mode=OneWay}" />
+                    <TextBlock
+                        AutomationProperties.AutomationId="TtsDeviceTextBlock"
+                        FontWeight="SemiBold"
+                        Text="{x:Bind ViewModel.TtsStatusText, Mode=OneWay}"
+                        TextWrapping="Wrap" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
                     <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Trạng thái giám sát" />
-                    <TextBlock AutomationProperties.AutomationId="MonitoringStatusTextBlock" FontWeight="SemiBold" Text="{x:Bind ViewModel.MonitoringStatusText, Mode=OneWay}" />
+                    <TextBlock
+                        AutomationProperties.AutomationId="MonitoringStatusTextBlock"
+                        FontWeight="SemiBold"
+                        Text="{x:Bind ViewModel.MonitoringStatusText, Mode=OneWay}"
+                        TextWrapping="Wrap" />
                 </StackPanel>
 
                 <TextBlock
@@ -236,7 +367,8 @@
                     Grid.ColumnSpan="2"
                     FontSize="12"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="{x:Bind ViewModel.GpuSummaryText, Mode=OneWay}" />
+                    Text="{x:Bind ViewModel.GpuSummaryText, Mode=OneWay}"
+                    TextWrapping="Wrap" />
             </Grid>
         </StackPanel>
     </ScrollViewer>

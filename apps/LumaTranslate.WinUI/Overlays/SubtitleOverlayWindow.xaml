@@ -7,38 +7,87 @@
 
     <Grid
         x:Name="OverlayRoot"
-        Padding="20,14"
         Background="#DC141821"
         BorderBrush="#55FFFFFF"
         BorderThickness="1"
         CornerRadius="10"
-        PointerPressed="OverlayRoot_PointerPressed">
+        PointerCanceled="OverlayRoot_PointerReleased"
+        PointerMoved="OverlayRoot_PointerMoved"
+        PointerPressed="OverlayRoot_PointerPressed"
+        PointerReleased="OverlayRoot_PointerReleased">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TextBlock
-            x:Name="DragHintText"
+        <Grid
+            x:Name="DragToolbar"
             Grid.Row="0"
-            Margin="0,0,0,4"
-            FontSize="12"
-            Foreground="#B8CBD5E1"
-            Text="Kéo để di chuyển phụ đề • Bật 'Khóa xuyên chuột' trong Cài đặt để click xuyên qua"
-            Visibility="Collapsed" />
+            Padding="14,8,10,6"
+            Background="#CC0F172A"
+            BorderBrush="#5538BDF8"
+            BorderThickness="0,0,0,1"
+            ColumnSpacing="10"
+            Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock
+                Grid.Column="0"
+                VerticalAlignment="Center"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Foreground="#FF7DD3FC"
+                Text="✥ Giữ chuột kéo khung này để đổi chỗ Vietsub • Kéo góc phải dưới ↘ để đổi kích thước"
+                TextTrimming="CharacterEllipsis" />
+            <Button
+                x:Name="LockOverlayBtn"
+                Grid.Column="1"
+                Padding="10,4"
+                AutomationProperties.AutomationId="LockOverlayInlineButton"
+                Click="LockOverlayBtn_Click"
+                Content="✓ Khóa vị trí"
+                FontSize="12" />
+        </Grid>
 
-        <TextBlock
-            x:Name="VietnameseSubtitleText"
-            Grid.Row="1"
-            VerticalAlignment="Center"
-            AutomationProperties.AutomationId="OverlaySubtitleTextBlock"
-            FontFamily="Segoe UI Variable Display"
-            FontSize="24"
-            FontWeight="SemiBold"
-            Foreground="#FFF8FAFC"
-            LineStackingStrategy="BlockLineHeight"
-            Text="Phụ đề tiếng Việt sẽ hiển thị tại đây khi bắt đầu dịch."
-            TextAlignment="Center"
-            TextWrapping="WrapWholeWords" />
+        <Grid Grid.Row="1" Padding="20,12">
+            <TextBlock
+                x:Name="VietnameseSubtitleText"
+                VerticalAlignment="Center"
+                AutomationProperties.AutomationId="OverlaySubtitleTextBlock"
+                FontFamily="Segoe UI Variable Display"
+                FontSize="24"
+                FontWeight="SemiBold"
+                Foreground="#FFF8FAFC"
+                LineStackingStrategy="BlockLineHeight"
+                Text="Phụ đề tiếng Việt sẽ hiển thị tại đây khi bắt đầu dịch."
+                TextAlignment="Center"
+                TextWrapping="WrapWholeWords" />
+        </Grid>
+
+        <Border
+            x:Name="ResizeGrip"
+            Grid.RowSpan="2"
+            Width="26"
+            Height="26"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Background="#990284C7"
+            CornerRadius="6,0,9,0"
+            PointerCanceled="ResizeGrip_PointerReleased"
+            PointerMoved="ResizeGrip_PointerMoved"
+            PointerPressed="ResizeGrip_PointerPressed"
+            PointerReleased="ResizeGrip_PointerReleased"
+            ToolTipService.ToolTip="Giữ và kéo để thay đổi kích thước khung Vietsub"
+            Visibility="Collapsed">
+            <TextBlock
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="13"
+                FontWeight="Bold"
+                Foreground="#FFF8FAFC"
+                Text="↘" />
+        </Border>
     </Grid>
 </Window>
