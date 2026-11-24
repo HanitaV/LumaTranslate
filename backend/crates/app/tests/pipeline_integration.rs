@@ -567,3 +567,124 @@ async fn prevents_stale_out_of_order_translations_and_handles_errors_and_worker_
     coord.shutdown_all().await;
     let _ = std::fs::remove_file(&db_path);
 }
+
+#[tokio::test]
+async fn resumes_translation_cleanly_after_stop_and_start_and_region_edit() {
+    let db_path = std::env::temp_dir().join(format!("luma_int_3_{}.db", std::process::id()));
+    let _ = std::fs::remove_file(&db_path);
+    let store = Arc::new(LumaStore::open_at_path(db_path.clone(), 64).unwrap());
+
+    let capturer = Arc::new(ScriptedCapturer::new());
+    let ocr = Arc::new(ScriptedOcrBackend::new());
+    let cloud = Arc::new(ControlledCloudProvider::new());
+    let translator = Arc::new(CloudTranslationManager::new(Arc::clone(&store)));
+    translator.register_custom_provider(TranslationProviderKind::MyMemory, cloud);
+    let tts = Arc::new(RecordingTtsMock::new());
+
+    ocr.map_seed(20, "Hello! Welcome back.", "en");
+    ocr.map_seed(11, "また会えて嬉しい。", "ja");
+    ocr.map_seed(30, "很高兴再次见到你。", "zh");
+
+    let (events_tx, mut events_rx) = broadcast::channel(128);
+    let shutdown = CancellationToken::new();
+    let coord = PipelineCoordinator::new(
+        Arc::clone(&store),
+        capturer.clone(),
+        ocr,
+        translator,
+        tts,
+        events_tx,
+        shutdown,
+        None,
+    );
+    let adapter = CoordinatorIpcAdapter(Arc::clone(&coord));
+
+    adapter
+        .handle_request(IpcRequest::UpdateSettings {
+            request_id: 1,
+            settings: AppSettings {
+                monitoring_interval_ms: 100,
+                cloud_consent_granted: true,
+                tts_enabled: true,
+                ..Default::default()
+            },
+        })
+        .await;
+
+    let region = CaptureRegion {
+        id: "r-resume".into(),
+        name: "Vùng chính".into(),
+        monitor_id: "mon-primary".into(),
+        x: 100,
+        y: 700,
+        width: 600,
+        height: 100,
+        dpi_scale: 1.0,
+        source_language: "auto".into(),
+        enabled: true,
+    };
+    adapter
+        .handle_request(IpcRequest::UpsertRegion {
+            request_id: 2,
+            region: region.clone(),
+        })
+        .await;
+
+    // Session 1: emit 2 subtitles (sequence 1 and 2)
+    for seed in [20u8, 20, 11, 11] {
+        capturer.push_frame_seed("r-resume", seed);
+    }
+    adapter
+        .handle_request(IpcRequest::StartMonitoring { request_id: 3 })
+        .await;
+
+    let mut session1_subs = Vec::new();
+    let deadline1 = tokio::time::Instant::now() + Duration::from_secs(3);
+    while session1_subs.len() < 2 && tokio::time::Instant::now() < deadline1 {
+        if let Ok(Ok(IpcServerMessage::SubtitleUpdated { subtitle })) =
+            tokio::time::timeout(Duration::from_millis(200), events_rx.recv()).await
+        {
+            session1_subs.push(subtitle.vietnamese_text);
+        }
+    }
+    assert_eq!(session1_subs.len(), 2, "Session 1 subtitles: {session1_subs:?}");
+
+    // User clicks "Dừng dịch" (StopMonitoring)
+    adapter
+        .handle_request(IpcRequest::StopMonitoring { request_id: 4 })
+        .await;
+
+    // Drain any residual events from Session 1
+    while events_rx.try_recv().is_ok() {}
+
+    // User clicks "Bắt đầu dịch" (StartMonitoring) again!
+    // Even with the SAME static subtitle still on screen (seed 11) followed by a new one (seed 30),
+    // BOTH must translate and emit immediately without being dropped by stale sequence counters!
+    for seed in [11u8, 11, 30, 30] {
+        capturer.push_frame_seed("r-resume", seed);
+    }
+    adapter
+        .handle_request(IpcRequest::StartMonitoring { request_id: 5 })
+        .await;
+
+    let mut session2_subs = Vec::new();
+    let deadline2 = tokio::time::Instant::now() + Duration::from_secs(3);
+    while session2_subs.len() < 2 && tokio::time::Instant::now() < deadline2 {
+        if let Ok(Ok(IpcServerMessage::SubtitleUpdated { subtitle })) =
+            tokio::time::timeout(Duration::from_millis(200), events_rx.recv()).await
+        {
+            session2_subs.push(subtitle.vietnamese_text);
+        }
+    }
+    assert_eq!(
+        session2_subs,
+        vec![
+            "Rất vui khi được gặp lại bạn.".to_string(),
+            "Rất vui được gặp lại bạn lần nữa.".to_string(),
+        ],
+        "Session 2 must immediately resume translating after Stop -> Start!"
+    );
+
+    coord.shutdown_all().await;
+    let _ = std::fs::remove_file(&db_path);
+}

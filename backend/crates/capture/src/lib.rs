@@ -413,7 +413,8 @@ mod win_impl {
                 }
                 let _ = frame.Close();
             }
-            if got_any || mon_session.latest_gpu_tex.is_some() || waited_ms >= 80 {
+            let max_wait_ms = if mon_session.latest_gpu_tex.is_none() { 160 } else { 80 };
+            if got_any || mon_session.latest_gpu_tex.is_some() || waited_ms >= max_wait_ms {
                 break;
             }
             thread::sleep(Duration::from_millis(8));

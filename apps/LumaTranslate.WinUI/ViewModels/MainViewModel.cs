@@ -125,6 +125,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private bool _isConnected;
     private bool _monitoringActive;
+    private bool _togglingMonitoring;
     private string _currentOriginalText = "Chưa có văn bản nhận dạng.";
     private string _currentVietnameseText = "Chọn một vùng màn hình và nhấn \"Bắt đầu dịch\" để dịch phụ đề sang tiếng Việt.";
     private string _latencySummary = "Độ trễ: —";
@@ -579,6 +580,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public async Task ToggleMonitoringAsync()
     {
+        if (_togglingMonitoring)
+        {
+            return;
+        }
+        _togglingMonitoring = true;
         try
         {
             ClearBanner();
@@ -598,6 +604,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             ShowBanner($"Lỗi điều khiển theo dõi: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            _togglingMonitoring = false;
         }
     }
 

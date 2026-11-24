@@ -69,8 +69,28 @@ impl OcrStabilizer {
         self.regions.remove(region_id);
     }
 
+    /// Reset transient candidate and last-emitted state for one region while preserving
+    /// its monotonic `next_sequence` counter so new emissions never collide with prior sequences.
+    pub fn reset_region(&mut self, region_id: &str) {
+        if let Some(state) = self.regions.get_mut(region_id) {
+            state.candidate_raw.clear();
+            state.candidate_norm.clear();
+            state.candidate_first_seen = None;
+            state.confirmations = 0;
+            state.last_emitted_norm = None;
+        }
+    }
+
+    /// Reset transient candidate and last-emitted state across all regions while preserving
+    /// each region's monotonic `next_sequence` counter across Stop -> Start cycles.
     pub fn reset_all(&mut self) {
-        self.regions.clear();
+        for state in self.regions.values_mut() {
+            state.candidate_raw.clear();
+            state.candidate_norm.clear();
+            state.candidate_first_seen = None;
+            state.confirmations = 0;
+            state.last_emitted_norm = None;
+        }
         self.last_displayed_vietnamese_norm = None;
     }
 
@@ -336,5 +356,29 @@ mod tests {
         assert!(stab
             .observe("r1", "Rất vui khi được gặp lại bạn.", 0.99)
             .is_none());
+    }
+
+    #[test]
+    fn preserves_monotonic_sequence_across_reset_all_and_reset_region() {
+        let mut stab = OcrStabilizer::new(StabilizerConfig::default());
+        let _ = stab.observe("r1", "First line", 0.96);
+        let first = stab.observe("r1", "First line", 0.96).unwrap();
+        assert_eq!(first.sequence, 1);
+
+        let _ = stab.observe("r1", "Second line", 0.96);
+        let second = stab.observe("r1", "Second line", 0.96).unwrap();
+        assert_eq!(second.sequence, 2);
+
+        // Simulate Stop -> Start: even the same static line on screen must re-emit with seq 3 (> 2)
+        stab.reset_all();
+        let _ = stab.observe("r1", "Second line", 0.96);
+        let after_reset = stab.observe("r1", "Second line", 0.96).unwrap();
+        assert_eq!(after_reset.sequence, 3);
+
+        // Simulate region edit / language change: next emission advances to seq 4
+        stab.reset_region("r1");
+        let _ = stab.observe("r1", "Second line", 0.96);
+        let after_region_reset = stab.observe("r1", "Second line", 0.96).unwrap();
+        assert_eq!(after_region_reset.sequence, 4);
     }
 }

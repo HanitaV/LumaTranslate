@@ -360,14 +360,17 @@ impl SpeechSynthesizer for SupervisedTtsClient {
         self.audio.stop_immediately();
         *self.last_spoken_text.write() = None;
 
-        let mut guard = self.stdin_tx.lock().await;
-        if let Some(ref mut stdin) = *guard {
-            let cancel_req = serde_json::json!({
-                "cmd": "cancel",
-                "request_id": self.next_request_id.fetch_add(1, Ordering::Relaxed),
-                "utterance_id": new_floor,
-            });
-            let _ = write_worker_frame(stdin, &cancel_req, &[]).await;
+        if let Ok(mut guard) =
+            tokio::time::timeout(Duration::from_millis(200), self.stdin_tx.lock()).await
+        {
+            if let Some(ref mut stdin) = *guard {
+                let cancel_req = serde_json::json!({
+                    "cmd": "cancel",
+                    "request_id": self.next_request_id.fetch_add(1, Ordering::Relaxed),
+                    "utterance_id": new_floor,
+                });
+                let _ = write_worker_frame(stdin, &cancel_req, &[]).await;
+            }
         }
     }
 

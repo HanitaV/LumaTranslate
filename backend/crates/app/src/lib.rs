@@ -166,6 +166,27 @@ impl PipelineCoordinator {
         });
     }
 
+    fn reset_pipeline_tracking(&self) {
+        self.frame_diff.lock().reset();
+        self.stabilizer.lock().reset_all();
+        self.ocr_inflight_regions.lock().clear();
+        self.latest_stabilized_seq.lock().clear();
+        self.latest_displayed_seq.lock().clear();
+        self.utterance_to_subtitle.lock().clear();
+    }
+
+    fn reset_region_tracking(&self, region_id: &str, remove_completely: bool) {
+        self.frame_diff.lock().remove_region(region_id);
+        if remove_completely {
+            self.stabilizer.lock().remove_region(region_id);
+        } else {
+            self.stabilizer.lock().reset_region(region_id);
+        }
+        self.ocr_inflight_regions.lock().remove(region_id);
+        self.latest_stabilized_seq.lock().remove(region_id);
+        self.latest_displayed_seq.lock().remove(region_id);
+    }
+
     pub async fn start_monitoring(self: &Arc<Self>) -> Result<(), String> {
         {
             let settings = self.settings.read();
@@ -189,9 +210,11 @@ impl PipelineCoordinator {
             return Ok(());
         }
 
-        self.frame_diff.lock().reset();
-        self.stabilizer.lock().reset_all();
-        self.ocr_inflight_regions.lock().clear();
+        // Cancel any lingering token from a prior run before resetting pipeline state
+        if let Some(prev_tok) = self.monitoring_cancel.lock().take() {
+            prev_tok.cancel();
+        }
+        self.reset_pipeline_tracking();
 
         let run_token = self.root_shutdown.child_token();
         *self.monitoring_cancel.lock() = Some(run_token.clone());
@@ -211,9 +234,7 @@ impl PipelineCoordinator {
             tok.cancel();
         }
         self.capturer.release_unused_monitors(&[]);
-        self.frame_diff.lock().reset();
-        self.stabilizer.lock().reset_all();
-        self.ocr_inflight_regions.lock().clear();
+        self.reset_pipeline_tracking();
         self.tts.stop_all().await;
         self.broadcast_snapshot();
     }
@@ -279,6 +300,10 @@ impl PipelineCoordinator {
                 let cap_res =
                     tokio::task::spawn_blocking(move || capturer.capture_region(&reg_for_cap))
                         .await;
+
+                if cancel.is_cancelled() || !self.monitoring_active.load(Ordering::Acquire) {
+                    break;
+                }
 
                 let frame = match cap_res {
                     Ok(Ok(f)) => f,
@@ -596,8 +621,7 @@ impl IpcCommandHandler for PipelineCoordinator {
                     }
                     let _ = self.store.save_regions(&list);
                 }
-                self.frame_diff.lock().remove_region(&validated.id);
-                self.stabilizer.lock().remove_region(&validated.id);
+                self.reset_region_tracking(&validated.id, false);
                 let snap = self.snapshot();
                 ok_state_response(req_id, snap)
             }
@@ -607,8 +631,7 @@ impl IpcCommandHandler for PipelineCoordinator {
                     list.retain(|r| r.id != region_id);
                     let _ = self.store.save_regions(&list);
                 }
-                self.frame_diff.lock().remove_region(&region_id);
-                self.stabilizer.lock().remove_region(&region_id);
+                self.reset_region_tracking(&region_id, true);
                 let snap = self.snapshot();
                 ok_state_response(req_id, snap)
             }
@@ -622,10 +645,7 @@ impl IpcCommandHandler for PipelineCoordinator {
                     }
                     let _ = self.store.save_regions(&list);
                 }
-                if !enabled {
-                    self.frame_diff.lock().remove_region(&region_id);
-                    self.stabilizer.lock().remove_region(&region_id);
-                }
+                self.reset_region_tracking(&region_id, false);
                 ok_state_response(req_id, self.snapshot())
             }
             IpcRequest::StartMonitoring { .. } => {
