@@ -14,16 +14,48 @@
 - **Topmost Subtitle Overlay**: Borderless, translucent, click-through overlay excluded from Windows Graphics Capture via `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` plus secondary feedback filtering.
 - **Automatic Local Vietnamese TTS**: Streams `48 kHz` audio from **VieNeu-TTS v3 Turbo** (`~186 ms` first-chunk latency on RTX 3060 CUDA, automatic ONNX CPU fallback when VRAM is constrained) directly into Windows WASAPI with `latest-subtitle-wins` interruption.
 
-## Prerequisites
+## System Requirements
 
 - **OS**: Windows 11 x64 (or Windows 10 version 2004 / build 19041+)
 - **GPU**: NVIDIA RTX 3060 (6 GB Laptop or 12 GB Desktop) with Driver `>= 550.54` recommended for CUDA acceleration (graceful CPU fallback included)
-- **Development Toolchains** (for building from source):
-  - Rust `1.80+` (`rustc` / `cargo`)
-  - .NET `10.0` SDK + Windows App SDK `2.7+`
-  - Python `3.12` x64 + [`uv`](https://github.com/astral-sh/uv)
+- **Pre-installed Dependencies**: **None required** — the prebuilt app automatically provisions isolated Python runtimes and AI models on first launch.
 
-## Quick Start
+## Quick Start (Prebuilt Release)
+
+### 1. Download & Extract
+
+1. Download the latest release archive (`LumaTranslate-*-win-x64.zip`) from [GitHub Releases](https://github.com/HanitaV/LumaTranslate/releases).
+2. Extract the folder anywhere on your PC (e.g., `D:\Apps\LumaTranslate`).
+
+### 2. Launch `LumaTranslate.exe`
+
+Run `LumaTranslate.exe` directly inside the extracted folder. It serves as **both the first-run environment installer and the application launcher**:
+
+- **First Launch (Unconfigured PC)**: Automatically opens the Vietnamese **Thiết lập môi trường LumaTranslate** wizard, detects NVIDIA GPU/VRAM & driver compatibility, downloads standalone `uv` + isolated Python 3.12 runtimes into `%LOCALAPPDATA%\LumaTranslate\runtimes\`, installs CUDA/CPU OCR & VieNeu-TTS packages, downloads & verifies Apache-2.0 models in `%LOCALAPPDATA%\LumaTranslate\models\`, and transitions straight into the main app.
+- **Subsequent Launches (Ready PC)**: Immediately starts `LumaTranslate.Backend.exe`, opens the topmost `SubtitleOverlayWindow`, and launches the main translation view.
+
+**Optional CLI Flags**:
+- `LumaTranslate.exe --setup` — Force-open the built-in environment installer/repair wizard.
+- `LumaTranslate.exe --auto-install --exit-after-setup` — Run unattended environment provisioning and exit when complete (or run `powershell -ExecutionPolicy Bypass -File .\install-runtimes.ps1`).
+- `LumaTranslate.exe --uninstall` — Open the Vietnamese uninstaller dialog to remove local AI runtimes, models, user data, shortcuts, and/or the packaged app folder.
+
+### 3. Uninstall LumaTranslate
+
+You can uninstall LumaTranslate and clean up `%LOCALAPPDATA%\LumaTranslate` (`runtimes`, `models`, `tools`, `data`) from any of the following places:
+
+- **In-App Settings**: Open **Cài đặt → Quản lý dữ liệu, môi trường AI & Gỡ cài đặt phần mềm → Gỡ cài đặt phần mềm...** (or click **Gỡ cài đặt / Dọn dẹp...** on the Setup Wizard).
+- **Windows Installed Apps**: **Settings → Apps → Installed apps → LumaTranslate → Uninstall** (registered automatically under `HKCU`).
+- **PowerShell**: Run `powershell -ExecutionPolicy Bypass -File .\uninstall.ps1` in the extracted folder (add `-Unattended -RemoveAppFolder` for silent removal).
+
+---
+
+## For Developers (Run & Build from Source)
+
+### Required Toolchains
+
+- Rust `1.80+` (`rustc` / `cargo`)
+- .NET `10.0` SDK + Windows App SDK `2.7+`
+- Python `3.12` x64 + [`uv`](https://github.com/astral-sh/uv)
 
 ### 1. Setup Inference Environments & Models
 
@@ -37,10 +69,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -AcceptModelDownloa
 powershell -ExecutionPolicy Bypass -File .\scripts\verify-cuda.ps1
 ```
 
-### 3. Build Backend & WinUI 3 Frontend
+### 3. Build & Run from Source
 
 ```powershell
+# Build Rust backend (Release) & WinUI 3 x64 frontend
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Configuration Release
+
+# Launch the locally built binary
+.\apps\LumaTranslate.WinUI\bin\x64\Release\net10.0-windows10.0.26100.0\win-x64\LumaTranslate.exe
 ```
 
 ### 4. Run Automated Tests
@@ -53,35 +89,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -SkipGpu
 ```
 
-### 5. Launch LumaTranslate (Built-in Installer + Launcher)
-
-`LumaTranslate.exe` serves as **both the first-run environment installer and the application launcher**:
-
-- **First Launch (Unconfigured PC)**: Automatically opens the Vietnamese **Thiết lập môi trường LumaTranslate** wizard, detects NVIDIA GPU/VRAM & driver compatibility, downloads standalone `uv` + isolated Python 3.12 runtimes into `%LOCALAPPDATA%\LumaTranslate\runtimes\`, installs CUDA/CPU OCR & VieNeu-TTS packages, downloads & verifies Apache-2.0 models in `%LOCALAPPDATA%\LumaTranslate\models\`, and transitions straight into the main app.
-- **Subsequent Launches (Ready PC)**: Immediately starts `LumaTranslate.Backend.exe`, opens the topmost `SubtitleOverlayWindow`, and launches the main translation view.
-- **CLI Flags**:
-  - `LumaTranslate.exe --setup` — Force-open the built-in environment installer/repair wizard.
-  - `LumaTranslate.exe --auto-install --exit-after-setup` — Run unattended environment provisioning and exit when complete.
-  - `LumaTranslate.exe --uninstall` — Open the Vietnamese uninstaller dialog to remove local AI runtimes, models, user data, shortcuts, and/or the packaged app folder.
-
-```powershell
-.\apps\LumaTranslate.WinUI\bin\x64\Release\net10.0-windows10.0.26100.0\win-x64\LumaTranslate.exe
-```
-
-### 6. Build Distributable Windows Package
+### 5. Build Distributable Windows Package (`Prebuilt`)
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\package.ps1
-# End users simply run dist\LumaTranslate-win-x64\LumaTranslate.exe directly!
+# Produces self-contained distribution in dist\LumaTranslate-win-x64\
 ```
-
-### 7. Uninstall LumaTranslate
-
-You can uninstall LumaTranslate and clean up `%LOCALAPPDATA%\LumaTranslate` (`runtimes`, `models`, `tools`, `data`) from any of the following places:
-
-- **In-App Settings**: Open **Cài đặt → Quản lý dữ liệu, môi trường AI & Gỡ cài đặt phần mềm → Gỡ cài đặt phần mềm...** (or click **Gỡ cài đặt / Dọn dẹp...** on the Setup Wizard).
-- **Windows Installed Apps**: **Settings → Apps → Installed apps → LumaTranslate → Uninstall** (registered automatically under `HKCU` for packaged installs).
-- **PowerShell / Standalone Script**: Run `uninstall.ps1` in the packaged folder (`powershell -ExecutionPolicy Bypass -File .\installer\uninstall.ps1`, or add `-Unattended -RemoveAppFolder` for silent removal).
 
 ## Documentation
 
