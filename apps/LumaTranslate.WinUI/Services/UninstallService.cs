@@ -26,6 +26,9 @@ public static class UninstallService
     private const string UninstallRegistrySubKey =
         @"Software\Microsoft\Windows\CurrentVersion\Uninstall\LumaTranslate";
 
+    private const string InnoUninstallRegistrySubKey =
+        @"Software\Microsoft\Windows\CurrentVersion\Uninstall\LumaTranslate_is1";
+
     private static (DateTimeOffset Timestamp, UninstallInspection Value)? _cachedInspection;
 
     public static UninstallInspection InspectQuick()
@@ -228,6 +231,12 @@ public static class UninstallService
     {
         try
         {
+            using RegistryKey? innoKey = Registry.CurrentUser.OpenSubKey(InnoUninstallRegistrySubKey, writable: false);
+            if (innoKey is not null)
+            {
+                return true;
+            }
+
             using RegistryKey? key = Registry.CurrentUser.OpenSubKey(UninstallRegistrySubKey, writable: false);
             return key is not null;
         }
@@ -250,6 +259,16 @@ public static class UninstallService
             string exePath = Path.Combine(baseDir, "LumaTranslate.exe");
             if (!File.Exists(exePath))
             {
+                return;
+            }
+
+            // If installed via Inno Setup (unins000.exe present or LumaTranslate_is1 registered),
+            // avoid creating a duplicate Installed Apps entry under HKCU\...\Uninstall\LumaTranslate.
+            string innoUninstaller = Path.Combine(baseDir, "unins000.exe");
+            using RegistryKey? innoKey = Registry.CurrentUser.OpenSubKey(InnoUninstallRegistrySubKey, writable: false);
+            if (File.Exists(innoUninstaller) || innoKey is not null)
+            {
+                Registry.CurrentUser.DeleteSubKeyTree(UninstallRegistrySubKey, throwOnMissingSubKey: false);
                 return;
             }
 
@@ -280,6 +299,7 @@ public static class UninstallService
         try
         {
             Registry.CurrentUser.DeleteSubKeyTree(UninstallRegistrySubKey, throwOnMissingSubKey: false);
+            Registry.CurrentUser.DeleteSubKeyTree(InnoUninstallRegistrySubKey, throwOnMissingSubKey: false);
         }
         catch
         {

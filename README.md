@@ -18,34 +18,35 @@
 
 - **Hệ điều hành**: Windows 11 x64 (hoặc Windows 10 phiên bản 2004 / build 19041 trở lên)
 - **GPU**: Khuyến nghị NVIDIA RTX 3060 (6 GB Laptop hoặc 12 GB Desktop) với Driver `>= 550.54` để tăng tốc CUDA (hỗ trợ tự động chạy trên CPU nếu không có GPU tương thích)
-- **Môi trường phụ thuộc**: **Không cần cài sẵn** Python, .NET hay CUDA Toolkit — bản dựng sẵn sẽ tự động tải môi trường cô lập và mô hình trong lần chạy đầu tiên.
+- **Môi trường phụ thuộc**: **Không cần cài sẵn** Python, .NET hay CUDA Toolkit — ứng dụng sẽ tự động tải môi trường cô lập và mô hình trong lần chạy đầu tiên.
 
-## Bắt đầu nhanh (Bản dựng sẵn / Prebuilt)
+## Bắt đầu nhanh (Bộ cài đặt / Prebuilt)
 
-### 1. Tải về & Giải nén
+### 1. Cài đặt LumaTranslate
 
-1. Truy cập trang [GitHub Releases](https://github.com/HanitaV/LumaTranslate/releases) và tải gói phát hành mới nhất (`LumaTranslate-*-win-x64.zip`).
-2. Giải nén toàn bộ thư mục ra vị trí bất kỳ trên máy (ví dụ: `D:\Apps\LumaTranslate`).
+1. Truy cập trang [GitHub Releases](https://github.com/HanitaV/LumaTranslate/releases) và tải bộ cài **`LumaTranslate-Setup-*-x64.exe`** *(hoặc gói `*-portable.zip` nếu muốn dùng dạng giải nén di động)*.
+2. Chạy tệp **`LumaTranslate-Setup-*-x64.exe`**: trình cài đặt tiếng Việt sẽ tự động cài ứng dụng vào `%LOCALAPPDATA%\Programs\LumaTranslate` (**không yêu cầu quyền Quản trị viên / Admin**), tạo lối tắt trong **Start Menu** (và **Desktop** nếu chọn), rồi mở thẳng LumaTranslate.
 
-### 2. Chạy `LumaTranslate.exe`
+### 2. Thiết lập AI tự động lần đầu & Sử dụng
 
-Mở `LumaTranslate.exe` trực tiếp trong thư mục vừa giải nén. Tệp thực thi này đóng vai trò **vừa là trình cài đặt môi trường lần đầu, vừa là trình khởi chạy ứng dụng**:
+`LumaTranslate.exe` đóng vai trò **vừa là trình cài đặt môi trường AI lần đầu, vừa là trình khởi chạy ứng dụng**:
 
 - **Lần chạy đầu tiên (máy chưa thiết lập)**: Tự động mở trình hướng dẫn **Thiết lập môi trường LumaTranslate**, nhận diện GPU/VRAM NVIDIA và độ tương thích driver, tải `uv` độc lập cùng môi trường Python 3.12 cô lập vào `%LOCALAPPDATA%\LumaTranslate\runtimes\`, cài đặt các gói OCR & VieNeu-TTS bản CUDA/CPU, tải và xác thực các mô hình chuẩn Apache-2.0 tại `%LOCALAPPDATA%\LumaTranslate\models\`, sau đó chuyển thẳng vào ứng dụng chính.
-- **Các lần chạy tiếp theo (máy đã sẵn sàng)**: Khởi động ngay `LumaTranslate.Backend.exe`, mở cửa sổ phụ đề nổi `SubtitleOverlayWindow` và vào thẳng màn hình dịch chính.
+- **Các lần chạy tiếp theo**: Mở **LumaTranslate** từ Start Menu / Desktop để khởi động ngay `LumaTranslate.Backend.exe`, cửa sổ phụ đề nổi `SubtitleOverlayWindow` và màn hình dịch chính.
+- **Cập nhật phiên bản mới**: Chỉ cần chạy đè bộ cài `LumaTranslate-Setup-*-x64.exe` mới — các mô hình AI và lịch sử dịch trong `%LOCALAPPDATA%\LumaTranslate` sẽ được giữ nguyên.
 
 **Tham số dòng lệnh tùy chọn (CLI)**:
-- `LumaTranslate.exe --setup` — Buộc mở lại trình hướng dẫn cài đặt / sửa chữa môi trường tích hợp.
-- `LumaTranslate.exe --auto-install --exit-after-setup` — Tự động thiết lập môi trường không cần tương tác và thoát khi hoàn tất (hoặc chạy `powershell -ExecutionPolicy Bypass -File .\install-runtimes.ps1`).
-- `LumaTranslate.exe --uninstall` — Mở hộp thoại gỡ cài đặt tiếng Việt để xóa môi trường AI cục bộ, mô hình, dữ liệu người dùng, lối tắt và/hoặc thư mục ứng dụng.
+- `LumaTranslate.exe --setup` — Buộc mở lại trình hướng dẫn cài đặt / sửa chữa môi trường AI tích hợp.
+- `LumaTranslate.exe --auto-install --exit-after-setup` — Tự động thiết lập môi trường AI không cần tương tác và thoát khi hoàn tất.
+- `LumaTranslate.exe --uninstall` — Mở hộp thoại gỡ cài đặt giao diện tiếng Việt của ứng dụng.
 
 ### 3. Gỡ cài đặt LumaTranslate
 
-Bạn có thể gỡ cài đặt và dọn dẹp `%LOCALAPPDATA%\LumaTranslate` (`runtimes`, `models`, `tools`, `data`) từ một trong các nơi sau:
+Bạn có thể gỡ cài đặt ứng dụng (`%LOCALAPPDATA%\Programs\LumaTranslate`) cùng môi trường AI / dữ liệu (`%LOCALAPPDATA%\LumaTranslate`) từ bất kỳ nơi nào sau đây:
 
+- **Ứng dụng đã cài đặt của Windows**: Mở **Settings → Apps → Installed apps → LumaTranslate → Uninstall** (trình gỡ cài đặt sẽ hỏi rõ bạn có muốn xóa luôn mô hình AI vài GB và lịch sử dịch hay không; chọn **Modify** để mở trình sửa chữa môi trường AI).
 - **Trong Cài đặt ứng dụng**: Mở **Cài đặt → Quản lý dữ liệu, môi trường AI & Gỡ cài đặt phần mềm → Gỡ cài đặt phần mềm...** (hoặc nhấn **Gỡ cài đặt / Dọn dẹp...** ngay trên trình hướng dẫn Thiết lập môi trường).
-- **Ứng dụng đã cài đặt của Windows**: **Settings → Apps → Installed apps → LumaTranslate → Uninstall** (được đăng ký tự động trong `HKCU`).
-- **PowerShell**: Chạy `powershell -ExecutionPolicy Bypass -File .\uninstall.ps1` trong thư mục giải nén (thêm `-Unattended -RemoveAppFolder` để gỡ tự động hoàn toàn).
+- **PowerShell (tự động / bản portable)**: Chạy `powershell -ExecutionPolicy Bypass -File .\uninstall.ps1` trong thư mục cài đặt (thêm `-Unattended -RemoveAppFolder` để gỡ ngầm hoàn toàn).
 
 ---
 
@@ -56,6 +57,7 @@ Bạn có thể gỡ cài đặt và dọn dẹp `%LOCALAPPDATA%\LumaTranslate` 
 - Rust `1.80+` (`rustc` / `cargo`)
 - .NET `10.0` SDK + Windows App SDK `2.7+`
 - Python `3.12` x64 + [`uv`](https://github.com/astral-sh/uv)
+- [Inno Setup 6](https://jrsoftware.org/isinfo.php) (`winget install JRSoftware.InnoSetup` — tùy chọn khi muốn xuất bộ cài `LumaTranslate-Setup-x64.exe`)
 
 ### 1. Thiết lập môi trường suy luận & tải mô hình
 
@@ -89,11 +91,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -SkipGpu
 ```
 
-### 5. Đóng gói bản phân phối Windows (`Prebuilt`)
+### 5. Đóng gói bộ cài `LumaTranslate-Setup-x64.exe` & bản phân phối
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\package.ps1
-# Tạo thư mục phân phối độc lập tại dist\LumaTranslate-win-x64\
+# Tạo thư mục phân phối tại dist\LumaTranslate-win-x64\
+# và biên dịch bộ cài AppData tại dist\LumaTranslate-Setup-x64.exe
 ```
 
 ## Tài liệu chi tiết

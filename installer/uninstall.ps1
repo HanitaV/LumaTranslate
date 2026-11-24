@@ -67,10 +67,14 @@ if ([string]::IsNullOrWhiteSpace($LocalDataRoot)) {
 
 # 2. Xóa mục đăng ký Windows Installed Apps & lối tắt
 if (-not $SkipRegistryAndShortcuts) {
-    $UninstallRegPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\LumaTranslate"
-    if (Test-Path -LiteralPath $UninstallRegPath) {
-        Remove-Item -LiteralPath $UninstallRegPath -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Host "Đã xóa mục đăng ký ứng dụng trong Windows." -ForegroundColor Green
+    foreach ($regSub in @(
+        "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\LumaTranslate",
+        "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\LumaTranslate_is1"
+    )) {
+        if (Test-Path -LiteralPath $regSub) {
+            Remove-Item -LiteralPath $regSub -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Host "Đã xóa mục đăng ký ứng dụng trong Windows ($regSub)." -ForegroundColor Green
+        }
     }
 
     $ShortcutPaths = @(

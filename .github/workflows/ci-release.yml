@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   build-and-test:
     runs-on: windows-latest
@@ -36,17 +39,25 @@ jobs:
           python -m pip install --upgrade pip pytest
           python -m pytest tests/unit -v
 
-      - name: Package self-contained Windows x64 distribution
+      - name: Build Windows x64 AppData Installer (.exe) & Portable (.zip)
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          cargo build --manifest-path backend/Cargo.toml --release --toolchain stable-x86_64-pc-windows-msvc
-          dotnet publish apps/LumaTranslate.WinUI/LumaTranslate.WinUI.csproj -c Release -r win-x64 -p:Platform=x64 -p:WindowsAppSDKSelfContained=true --self-contained true -p:PublishTrimmed=false -o dist/LumaTranslate-win-x64
-          Copy-Item -Force backend/target/release/luma_translate_backend.exe dist/LumaTranslate-win-x64/LumaTranslate.Backend.exe
-          New-Item -ItemType Directory -Force -Path dist/LumaTranslate-win-x64/workers/ocr, dist/LumaTranslate-win-x64/workers/tts, dist/LumaTranslate-win-x64/workers/shared | Out-Null
-          Copy-Item -Force workers/shared/protocol.py dist/LumaTranslate-win-x64/workers/shared/protocol.py
-          Copy-Item -Force workers/ocr/*.py, workers/ocr/requirements.txt dist/LumaTranslate-win-x64/workers/ocr/
-          Copy-Item -Force workers/tts/*.py, workers/tts/requirements.txt dist/LumaTranslate-win-x64/workers/tts/
-          Copy-Item -Force installer/install.ps1 dist/LumaTranslate-win-x64/install-runtimes.ps1
-          Copy-Item -Force installer/uninstall.ps1 dist/LumaTranslate-win-x64/uninstall.ps1
-          Copy-Item -Force README.md, README.en.md, LICENSE dist/LumaTranslate-win-x64/
-          Compress-Archive -Path dist/LumaTranslate-win-x64/* -DestinationPath dist/LumaTranslate-${{ github.ref_name }}-win-x64.zip -Force
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          $installerName = "LumaTranslate-Setup-${{ github.ref_name }}-x64"
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue) -and -not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --no-progress -y
+          }
+          powershell -ExecutionPolicy Bypass -File .\scripts\package.ps1 `
+            -AppVersion $version `
+            -InstallerBaseName $installerName `
+            -RequireInstaller
+          Compress-Archive -Path dist/LumaTranslate-win-x64/* -DestinationPath "dist/LumaTranslate-${{ github.ref_name }}-win-x64-portable.zip" -Force
+
+      - name: Publish GitHub Release Assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/LumaTranslate-Setup-${{ github.ref_name }}-x64.exe
+            dist/LumaTranslate-${{ github.ref_name }}-win-x64-portable.zip

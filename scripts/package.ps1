@@ -1,12 +1,17 @@
 ﻿[CmdletBinding()]
 param(
     [string]$OutputDir = "dist\LumaTranslate-win-x64",
-    [switch]$BundleVirtualEnvs
+    [string]$AppVersion = "1.0.0",
+    [string]$InstallerBaseName = "LumaTranslate-Setup-x64",
+    [switch]$BundleVirtualEnvs,
+    [switch]$SkipInstaller,
+    [switch]$RequireInstaller
 )
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $DistPath = Join-Path $RepoRoot $OutputDir
+$DistParent = Split-Path -Parent $DistPath
 
 Write-Host "=== Packaging LumaTranslate Windows x64 Distribution ===" -ForegroundColor Cyan
 
@@ -38,7 +43,6 @@ if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed for LumaTranslate.WinUI"
 }
 
-# Remove legacy duplicate check — <AssemblyName>LumaTranslate</AssemblyName> produces LumaTranslate.exe directly
 if (-not (Test-Path (Join-Path $DistPath "LumaTranslate.exe"))) {
     throw "Expected LumaTranslate.exe was not produced in $DistPath"
 }
@@ -68,4 +72,45 @@ Copy-Item -Force (Join-Path $RepoRoot "README.md") (Join-Path $DistPath "README.
 Copy-Item -Force (Join-Path $RepoRoot "README.en.md") (Join-Path $DistPath "README.en.md") -ErrorAction SilentlyContinue
 Copy-Item -Force (Join-Path $RepoRoot "LICENSE") (Join-Path $DistPath "LICENSE")
 
-Write-Host "Packaged distribution ready at: $DistPath" -ForegroundColor Green
+Write-Host "Unpacked distribution staged at: $DistPath" -ForegroundColor Green
+
+# 5. Build per-user AppData installer (.exe) via Inno Setup 6 (ISCC.exe)
+if (-not $SkipInstaller) {
+    $isccCandidates = @(
+        (Get-Command iscc -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source),
+        "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
+        "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+        "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
+
+    $isccExe = $isccCandidates | Select-Object -First 1
+    if ($isccExe) {
+        $issScript = Join-Path $RepoRoot "installer\LumaTranslate.iss"
+
+        # Ensure LumaTranslate.iss has UTF-8 BOM so ISCC preserves Vietnamese diacritics
+        $rawBytes = [System.IO.File]::ReadAllBytes($issScript)
+        if ($rawBytes.Length -lt 3 -or $rawBytes[0] -ne 0xEF -or $rawBytes[1] -ne 0xBB -or $rawBytes[2] -ne 0xBF) {
+            $utf8WithBom = [System.Text.UTF8Encoding]::new($true)
+            $textContent = [System.Text.Encoding]::UTF8.GetString($rawBytes)
+            [System.IO.File]::WriteAllText($issScript, $textContent, $utf8WithBom)
+        }
+
+        Write-Host "Building Inno Setup per-user AppData installer with: $isccExe" -ForegroundColor Cyan
+        & $isccExe `
+            "/DAppVersion=$AppVersion" `
+            "/DSourceDir=$DistPath" `
+            "/DOutputDir=$DistParent" `
+            "/DOutputBaseFilename=$InstallerBaseName" `
+            $issScript
+        if ($LASTEXITCODE -ne 0) {
+            throw "Inno Setup compilation (ISCC.exe) failed with exit code $LASTEXITCODE"
+        }
+
+        $installerOut = Join-Path $DistParent "$InstallerBaseName.exe"
+        Write-Host "Installer package ready at: $installerOut" -ForegroundColor Green
+    } elseif ($RequireInstaller) {
+        throw "ISCC.exe (Inno Setup 6) not found. Install via: winget install JRSoftware.InnoSetup"
+    } else {
+        Write-Warning "ISCC.exe (Inno Setup 6) not found — skipped building $InstallerBaseName.exe. Install via 'winget install JRSoftware.InnoSetup' to produce the setup .exe."
+    }
+}
