@@ -24,7 +24,7 @@
 
 ### 1. Cài đặt LumaTranslate
 
-1. Truy cập trang [GitHub Releases](https://github.com/HanitaV/LumaTranslate/releases) và tải bộ cài **`LumaTranslate-Setup-*-x64.exe`** *(hoặc gói `*-portable.zip` nếu muốn dùng dạng giải nén di động)*.
+1. Truy cập trang [GitHub Releases](https://github.com/HanitaV/LumaTranslate/releases), kéo xuống cuối bài viết của bản phát hành mới nhất và **bấm vào mục `▸ Assets`** để mở danh sách tệp đính kèm, sau đó tải bộ cài **`LumaTranslate-Setup-*-x64.exe`** *(hoặc gói `*-portable.zip` nếu muốn dùng dạng giải nén di động)*.
 2. Chạy tệp **`LumaTranslate-Setup-*-x64.exe`**: trình cài đặt tiếng Việt sẽ tự động cài ứng dụng vào `%LOCALAPPDATA%\Programs\LumaTranslate` (**không yêu cầu quyền Quản trị viên / Admin**), tạo lối tắt trong **Start Menu** (và **Desktop** nếu chọn), rồi mở thẳng LumaTranslate.
 
 ### 2. Thiết lập AI tự động lần đầu & Sử dụng

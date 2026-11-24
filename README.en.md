@@ -24,7 +24,7 @@
 
 ### 1. Install LumaTranslate
 
-1. Download the latest **`LumaTranslate-Setup-*-x64.exe`** installer from [GitHub Releases](https://github.com/HanitaV/LumaTranslate/releases) *(or grab `*-portable.zip` if you prefer a portable folder)*.
+1. Open [GitHub Releases](https://github.com/HanitaV/LumaTranslate/releases), scroll to the bottom of the latest release post, and **click `▸ Assets`** to expand the download list, then download **`LumaTranslate-Setup-*-x64.exe`** *(or grab `*-portable.zip` if you prefer a portable folder)*.
 2. Run **`LumaTranslate-Setup-*-x64.exe`**: the per-user installer installs LumaTranslate into `%LOCALAPPDATA%\Programs\LumaTranslate` (**no Administrator / UAC prompt required**), creates **Start Menu** (and optional **Desktop**) shortcuts, and launches LumaTranslate.
 
 ### 2. Automatic First-Run AI Setup & Usage
